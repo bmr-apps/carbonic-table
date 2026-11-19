@@ -80,17 +80,14 @@ function ensureSchema(sql: Sql): Promise<void> {
           try { await sql.unsafe(statement); } catch (e) { console.error(FN, 'DDL', (e as Error).message); }
         }
       }
-      // 처음 미션 57개 — 이미 있으면 그대로 (seed_key 기준이라 여러 번 넣어도 한 번만 들어감)
-      const [count] = await sql`select count(*)::int as n from carbonic_table.missions` as unknown as Row[];
-      if (!count || Number(count.n) === 0) {
-        const values = SEED_MISSIONS.map((_m, i) => `('m${String(i + 1).padStart(2, '0')}', $${i * 2 + 1}, $${i * 2 + 2}, ${i + 1})`).join(',');
-        const params = SEED_MISSIONS.flatMap(([name, air]) => [name, air]);
-        // $1..$171 — 이름·공기만 매개변수로 (SQL 주입 없음)
-        await sql.unsafe(
-          `insert into carbonic_table.missions (seed_key, name, air, sort) values ${values} on conflict (seed_key) do nothing`,
-          params as never[],
-        );
-      }
+      // 처음 미션 57개 — 시트에서 온 기본 미션은 seed_key 로 한 번만 들어가고, 빠져 있으면 다시 채운다.
+      // (운영자가 기본 미션을 지워도 다음 콜드 스타트에 되살아난다 → 기본 미션은 '숨기기'만 쓰도록 안내)
+      const values = SEED_MISSIONS.map((_m, i) => `('m${String(i + 1).padStart(2, '0')}', $${i * 2 + 1}, $${i * 2 + 2}, ${i + 1})`).join(',');
+      const params = SEED_MISSIONS.flatMap(([name, air]) => [name, air]);
+      await sql.unsafe(
+        `insert into carbonic_table.missions (seed_key, name, air, sort) values ${values} on conflict (seed_key) do nothing`,
+        params as never[],
+      );
     } catch (e) {
       console.error(FN, 'ensureSchema', (e as Error).message);
       schemaReady = null; // 다음 요청에서 다시 시도
@@ -227,7 +224,7 @@ async function buildState(sql: Sql, req: Request) {
     order by a.created_at desc, a.id desc limit 40` as unknown as Row[];
 
   const missionRows = await sql`
-    select id, name, air, active, sort, created_at,
+    select id, name, air, active, sort, created_at, seed_key,
            (select count(*)::int from carbonic_table.activities a where a.mission_id = carbonic_table.missions.id) as uses
     from carbonic_table.missions
     where (${isOperator} or active = true)
@@ -287,6 +284,7 @@ async function buildState(sql: Sql, req: Request) {
     missions: missionRows.map((r) => ({
       id: String(r.id), name: String(r.name ?? ''), air: Number(r.air ?? 0),
       active: r.active === true, sort: Number(r.sort ?? 0), uses: Number(r.uses ?? 0),
+      seeded: r.seed_key != null && String(r.seed_key) !== '',
     })),
     auctions: auctionRows.map((r) => ({
       id: String(r.id), title: String(r.title ?? ''), description: String(r.description ?? ''),
@@ -457,6 +455,11 @@ Deno.serve(async (req) => {
       requireOperator();
       const id = parts[1];
       if (!/^\d{1,12}$/.test(id)) return json(req, 400, { error: '미션 번호가 올바르지 않습니다.' });
+      const [m] = await db`select id, seed_key from carbonic_table.missions where id = ${id}` as unknown as Row[];
+      if (!m) return json(req, 404, { error: '그 미션을 찾지 못했어요.' });
+      if (m.seed_key != null && String(m.seed_key) !== '') {
+        return json(req, 409, { error: '시트에서 온 기본 미션은 지우지 말고 숨겨 주세요.' });
+      }
       const [u] = await db`select count(*)::int as n from carbonic_table.activities where mission_id = ${id}` as unknown as Row[];
       if (Number(u?.n ?? 0) > 0) return json(req, 409, { error: '이 미션으로 등록한 실천이 있어요. 지우지 말고 숨겨 주세요.' });
       const [row] = await db`delete from carbonic_table.missions where id = ${id} returning id, name` as unknown as Row[];

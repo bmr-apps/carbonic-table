@@ -577,7 +577,7 @@ function missionAdminHtml() {
       <div class="row-actions">
         <button type="button" class="btn tiny ghost" data-action="save-mission-air" data-id="${esc(m.id)}">공기 저장</button>
         <button type="button" class="btn tiny ${m.active ? '' : 'primary'}" data-action="toggle-mission" data-id="${esc(m.id)}" data-active="${m.active ? '1' : '0'}">${m.active ? '숨기기' : '다시 쓰기'}</button>
-        ${m.uses === 0 ? `<button type="button" class="btn tiny ghost" data-action="delete-mission" data-id="${esc(m.id)}">지우기</button>` : ''}
+        ${m.uses === 0 && !m.seeded ? `<button type="button" class="btn tiny ghost" data-action="delete-mission" data-id="${esc(m.id)}">지우기</button>` : ''}
       </div>
     </div>`).join('');
 }
