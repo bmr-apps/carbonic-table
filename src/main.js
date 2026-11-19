@@ -124,6 +124,7 @@ const state = {
   airFilter: 'all',
   cart: {},                // { [missionId]: 수량 } — 여러 미션·같은 미션 여러 번
   images: { activity: null, notice: null, lot: null },  // { dataUrl } | { path } | null
+  itemImages: {},          // { [missionId]: { dataUrl } | { path } } — 고른 실천 항목별 사진
   mineFilter: 'all',       // all | photo | mission:<이름>
   day: todayStr(),
   memberQuery: '',
@@ -682,15 +683,14 @@ function practicesView() {
       <section class="pick-sticky" aria-label="고른 실천">
         <div class="pick-box">
           <div class="label">고른 실천 <span id="cart-count">${nf(count)}</span>건</div>
-          <div class="picked" id="picked-name">${count
-            ? cart.map((c) => `${esc(c.mission.name)} × ${nf(c.count)}`).join('<br>')
-            : '왼쪽에서 미션을 골라 주세요'}</div>
+          <div class="picked" id="picked-list">${pickedListHtml()}</div>
           <div class="reward"><b id="cart-air">+${nf(air)}</b><small>공기</small></div>
           <form class="pick-form" data-action="activity">
             <label class="field"><span>실천한 날</span>
               <input type="date" name="day" value="${esc(state.day)}" max="${todayStr()}" required>
             </label>
-            <div id="image-field-activity">${imageFieldHtml('activity', '사진')}</div>
+            <div id="image-field-activity">${imageFieldHtml('activity', '대표 사진')}</div>
+            <p class="hint pick-hint" id="root-photo-hint">${rootPhotoHint()}</p>
             <button type="submit" class="btn primary wide" ${count ? '' : 'disabled'} id="cart-submit">${count ? `${nf(air)}공기 적립하기` : '미션을 골라 주세요'}</button>
           </form>
           <p class="hint pick-hint">기록하면 바로 통장에 들어가고, 그만큼 지구가 맑아져요.</p>
@@ -721,6 +721,40 @@ function cartItems() {
   return d().missions
     .map((mission) => ({ mission, count: Number(state.cart[mission.id] || 0) }))
     .filter((x) => x.count > 0);
+}
+
+/** 고른 실천 목록 — 항목마다 사진(📷)을 붙이고 지울 수 있다 */
+function pickedListHtml() {
+  const cart = cartItems();
+  if (!cart.length) return `<p class="picked-empty">왼쪽에서 미션을 골라 주세요</p>`;
+  return `<ul class="picked-list">${cart.map(({ mission, count }) => {
+    const img = state.itemImages[mission.id];
+    const src = img?.dataUrl || (img?.path ? imgSrc(img.path) : '');
+    return `<li class="picked-item">
+        <span class="pi-main">
+          <span class="pi-name">${esc(mission.name)}</span>
+          <span class="pi-meta">× ${nf(count)} · +${nf(mission.air * count)}</span>
+        </span>
+        ${src
+          ? `<span class="pi-photo on">
+              <img class="pi-thumb" src="${esc(src)}" alt="${esc(mission.name)}에 붙일 사진">
+              <button type="button" class="btn tiny ghost" data-action="item-image-clear" data-id="${esc(mission.id)}" aria-label="${esc(mission.name)} 사진 지우기">✕</button>
+            </span>`
+          : `<label class="pi-pick" title="이 실천에 사진 붙이기">
+              <span aria-hidden="true">📷</span>
+              <input type="file" accept="image/*" class="file-input" data-item-image="${esc(mission.id)}" aria-label="${esc(mission.name)} 사진 고르기">
+            </label>`}
+      </li>`;
+  }).join('')}</ul>`;
+}
+
+/** 대표 사진 안내 — 첫 번째 기록 한 곳에만 붙는다 */
+function rootPhotoHint() {
+  const first = cartItems()[0];
+  if (first && state.images.activity && state.itemImages[first.mission.id]) {
+    return '첫 번째 실천에 사진이 있어 대표 사진은 쓰지 않아요.';
+  }
+  return '대표 사진은 첫 번째 기록에만 첨부돼요. 항목마다 다른 사진은 위 📷로 붙여요.';
 }
 
 function missionListHtml() {
@@ -759,8 +793,10 @@ function paintCart() {
   const count = cart.reduce((n, c) => n + c.count, 0);
   const countEl = $('#cart-count');
   if (countEl) countEl.textContent = nf(count);
-  const nameEl = $('#picked-name');
-  if (nameEl) nameEl.innerHTML = count ? cart.map((c) => `${esc(c.mission.name)} × ${nf(c.count)}`).join('<br>') : '왼쪽에서 미션을 골라 주세요';
+  const nameEl = $('#picked-list');
+  if (nameEl) nameEl.innerHTML = pickedListHtml();
+  const hintEl = $('#root-photo-hint');
+  if (hintEl) hintEl.textContent = rootPhotoHint();
   const airEl = $('#cart-air');
   if (airEl) airEl.textContent = `+${nf(air)}`;
   const submit = $('#cart-submit');
@@ -794,7 +830,11 @@ function imageFieldHtml(key, label) {
 
 function repaintImageField(key) {
   const el = $(`#image-field-${key}`);
-  if (el) el.innerHTML = imageFieldHtml(key, key === 'notice' ? '공지 사진' : key === 'lot' ? '물품 사진' : '사진');
+  if (el) el.innerHTML = imageFieldHtml(key, key === 'notice' ? '공지 사진' : key === 'lot' ? '물품 사진' : key === 'activity' ? '대표 사진' : '사진');
+  if (key === 'activity') {
+    const hintEl = $('#root-photo-hint');
+    if (hintEl) hintEl.textContent = rootPhotoHint();
+  }
 }
 
 function loadBitmap(file) {
@@ -839,6 +879,17 @@ async function imagePathFor(key) {
   if (!img.dataUrl) return '';
   const r = await api.uploadImage(img.dataUrl);
   state.images[key] = { path: r.path };
+  return r.path;
+}
+
+/** 고른 실천 항목에 붙인 사진을 올리고 주소를 받는다 (사진이 없으면 '') */
+async function itemImagePathFor(missionId) {
+  const img = state.itemImages[missionId];
+  if (!img) return '';
+  if (img.path) return img.path;
+  if (!img.dataUrl) return '';
+  const r = await api.uploadImage(img.dataUrl);
+  state.itemImages[missionId] = { path: r.path };
   return r.path;
 }
 
@@ -1464,6 +1515,7 @@ document.addEventListener('click', async (e) => {
   }
   if (action === 'cart-clear') {
     state.cart = {};
+    state.itemImages = {};
     paintCart();
     return;
   }
@@ -1476,6 +1528,12 @@ document.addEventListener('click', async (e) => {
     const key = el.dataset.key;
     state.images[key] = null;
     repaintImageField(key);
+    return;
+  }
+  if (action === 'item-image-clear') {
+    const id = el.dataset.id;
+    if (id) delete state.itemImages[id];
+    paintCart();
     return;
   }
   if (action === 'zoom') {
@@ -1726,18 +1784,29 @@ document.addEventListener('submit', async (e) => {
   const btn = form.querySelector('button[type="submit"]');
 
   if (action === 'activity') {
-    const items = cartItems().map((c) => ({ mission_id: c.mission.id, count: c.count }));
-    if (!items.length) { toast('먼저 미션을 골라 주세요.', 'err'); return; }
+    const picks = cartItems();
+    if (!picks.length) { toast('먼저 미션을 골라 주세요.', 'err'); return; }
     const day = form.querySelector('input[name="day"]')?.value || todayStr();
     state.day = day;
     try {
       await withBusy(btn, async () => {
-        const image_url = await imagePathFor('activity');
-        const r = await api.addActivities({ items, done_on: day, image_url });
+        // 항목별 사진을 먼저 올린다 (한 항목이 여러 건이어도 그 사진은 첫 기록에만 붙는다)
+        const items = [];
+        for (const c of picks) {
+          const image_url = await itemImagePathFor(c.mission.id);
+          items.push(image_url
+            ? { mission_id: c.mission.id, count: c.count, image_url }
+            : { mission_id: c.mission.id, count: c.count });
+        }
+        // 대표 사진은 맨 첫 기록 한 곳에만 — 첫 항목에 이미 사진을 붙였으면 쓰지 않는다
+        const useRoot = Boolean(state.images.activity) && !items[0].image_url;
+        const image_url = useRoot ? await imagePathFor('activity') : '';
+        const r = await api.addActivities(image_url ? { items, done_on: day, image_url } : { items, done_on: day });
         toast(`실천 ${nf(r.count)}건 · ${nf(r.air)}공기를 적립했어요!`, 'ok');
       });
       state.cart = {};
       state.images.activity = null;
+      state.itemImages = {};
       await load({ quiet: true });
       switchView('practices');
     } catch (err) {
@@ -1857,17 +1926,24 @@ document.addEventListener('submit', async (e) => {
 });
 
 // 사진 고르기 — 줄여서 미리 보여 주고, 등록할 때 올린다
+//  · data-image: 공지·물품·대표 사진 / data-item-image: 고른 실천 항목별 사진
 document.addEventListener('change', async (e) => {
-  const input = e.target.closest('input[type="file"][data-image]');
+  const input = e.target.closest('input[type="file"][data-image], input[type="file"][data-item-image]');
   if (!input) return;
   const key = input.dataset.image;
+  const missionId = input.dataset.itemImage;
   const file = input.files?.[0];
   if (!file) return;
   if (!file.type.startsWith('image/')) { toast('사진 파일만 고를 수 있어요.', 'err'); return; }
   try {
     const dataUrl = await shrinkImage(file);
-    state.images[key] = { dataUrl };
-    repaintImageField(key);
+    if (missionId) {
+      state.itemImages[missionId] = { dataUrl };
+      paintCart();
+    } else {
+      state.images[key] = { dataUrl };
+      repaintImageField(key);
+    }
   } catch (err) {
     toast(err.message || '사진을 읽지 못했어요.', 'err');
   }

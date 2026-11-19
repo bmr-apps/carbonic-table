@@ -8,7 +8,8 @@
 //   GET   /images/:id                   사진 내려 주기 (공개)
 //   POST  /images         {data}        사진 올리기 (로그인·회원, data:image/webp;base64,… 1.2MB까지)
 //   POST  /me            {name, kind}   내 회원 정보 등록·수정 (로그인 필요, 첫 회원은 관리자)
-//   POST  /activities    {mission_id, done_on} 또는 {items:[{mission_id, count}…], done_on, image_url?}   실천 등록(여러 건·같은 미션 여러 번 가능)
+//   POST  /activities    {mission_id, done_on} 또는 {items:[{mission_id, count, image_url?}…], done_on, image_url?}   실천 등록
+//                        (여러 건·같은 미션 여러 번 가능. 사진은 항목별로 줄 수 있고, 한 장은 한 행에만 붙는다)
 //   DEL   /activities/:id               내 실천 기록 지우기 (관리자는 남의 것도)
 //   POST  /activities/:id/reactions {emoji}      이모지 반응 켜기/끄기
 //   POST  /activities/:id/comments {body}        댓글 쓰기
@@ -747,7 +748,7 @@ Deno.serve(async (req) => {
       // 요청 모양 두 가지를 모두 받는다
       //   ① { items: [{ mission_id, count }, …] }  — 미션 여러 개, 같은 미션 여러 번
       //   ② { mission_id, count? }                 — 예전 화면·간단한 등록
-      type Pick = { missionId: string; count: number };
+      type Pick = { missionId: string; count: number; imageUrl: string };
       const picks: Pick[] = [];
       const rawItems = Array.isArray(body.items) ? body.items : [{ mission_id: body.mission_id, count: body.count }];
       if (rawItems.length > 40) return json(req, 400, { error: '한 번에 40줄까지만 등록할 수 있어요.' });
@@ -755,7 +756,10 @@ Deno.serve(async (req) => {
         const missionId = idOf(item?.mission_id);
         const count = intOf(item?.count ?? 1, 1, 30);
         if (count == null) return json(req, 400, { error: '수량은 1~30 사이로 골라 주세요.' });
-        picks.push({ missionId, count });
+        // 항목별 사진 — image_url('/images/번호') 또는 image_id(번호) 둘 다 받는다
+        const rawImage = String(item?.image_url || item?.image_id || '').trim();
+        const imageUrlOfItem = /^\d{1,12}$/.test(rawImage) ? imagePathOf(`/images/${rawImage}`) : imagePathOf(rawImage);
+        picks.push({ missionId, count, imageUrl: imageUrlOfItem });
       }
       if (!picks.length) return json(req, 400, { error: '실천할 미션을 골라 주세요.' });
       const totalRows = picks.reduce((n, p) => n + p.count, 0);
@@ -768,18 +772,29 @@ Deno.serve(async (req) => {
         // 같은 사람의 잔액을 건드리는 일은 회원 줄을 잠가 순서대로 처리한다
         const [m] = await tx`select user_id from carbonic_table.members where user_id = ${user!.id} for update` as unknown as Row[];
         if (!m) throw new HttpError(400, '먼저 이름과 구분을 등록해 주세요.');
+        // 사진은 한 장이 여러 행에 중복으로 박히지 않게 붙인다
+        //   · 항목별 사진 → 그 항목이 만든 첫 번째 행에만
+        //   · 루트(대표) 사진 → 전체에서 첫 번째 행 한 곳에만
+        let rowIndex = 0;
         for (const pick of picks) {
           const [mission] = await tx`
             select id, name, air, active from carbonic_table.missions where id = ${pick.missionId}` as unknown as Row[];
           if (!mission) throw new HttpError(404, '그 미션을 찾지 못했어요.');
           if (mission.active !== true) throw new HttpError(409, `‘${String(mission.name)}’ 미션은 지금 쉬고 있어요. 다른 미션을 골라 주세요.`);
           for (let i = 0; i < pick.count; i += 1) {
+            let rowImage = i === 0 ? pick.imageUrl : '';
+            if (!rowImage && rowIndex === 0) rowImage = imageUrl;
             const [act] = await tx`
               insert into carbonic_table.activities (user_id, mission_id, mission_name, air, done_on, season_id, image_url)
-              values (${user!.id}, ${Number(mission.id)}, ${String(mission.name)}, ${Number(mission.air)}, ${doneOn}, ${seasonId}, ${imageUrl})
+              values (${user!.id}, ${Number(mission.id)}, ${String(mission.name)}, ${Number(mission.air)}, ${doneOn}, ${seasonId}, ${rowImage})
               returning id, mission_name, air, to_char(done_on, 'YYYY-MM-DD') as done_on, created_at, season_id, image_url` as unknown as Row[];
             created.push(act);
+            rowIndex += 1;
           }
+        }
+        // 대표 사진이 어느 행에도 붙지 못했으면(첫 행에 이미 항목 사진이 있는 경우) 올린 사진을 남기지 않는다
+        if (imageUrl && !created.some((r) => String(r.image_url ?? '') === imageUrl)) {
+          await dropImageIfUnused(tx, imageUrl);
         }
         return created[0] ?? null;
       });
