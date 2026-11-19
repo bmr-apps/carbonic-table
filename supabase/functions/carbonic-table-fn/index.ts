@@ -220,7 +220,7 @@ async function buildState(sql: Sql, req: Request) {
     order by coalesce(e.earned, 0) desc, m.name asc` as unknown as Row[];
 
   const activityRows = await sql`
-    select a.id, a.user_id, a.mission_id, a.mission_name, a.air, a.done_on, a.created_at,
+    select a.id, a.user_id, a.mission_id, a.mission_name, a.air, to_char(a.done_on, 'YYYY-MM-DD') as done_on, a.created_at,
            coalesce(m.name, '') as name, coalesce(m.kind, '') as kind
     from carbonic_table.activities a
     left join carbonic_table.members m on m.user_id = a.user_id
@@ -382,7 +382,7 @@ Deno.serve(async (req) => {
         const [act] = await tx`
           insert into carbonic_table.activities (user_id, mission_id, mission_name, air, done_on)
           values (${user!.id}, ${Number(mission.id)}, ${String(mission.name)}, ${Number(mission.air)}, ${doneOn})
-          returning id, mission_name, air, done_on, created_at` as unknown as Row[];
+          returning id, mission_name, air, to_char(done_on, 'YYYY-MM-DD') as done_on, created_at` as unknown as Row[];
         return act;
       });
       return json(req, 201, {
@@ -583,8 +583,9 @@ Deno.serve(async (req) => {
         if (!a) throw new HttpError(404, '그 경매를 찾지 못했어요.');
         const [c] = await tx`select count(*)::int as n from carbonic_table.bids where auction_id = ${auctionId}` as unknown as Row[];
         // 낙찰 기록이 남은 경매를 지우면 회원의 사용 공기가 달라진다 → 취소했거나 입찰이 없을 때만 지운다
-        if (Number(c?.n ?? 0) > 0 && String(a.status) !== 'canceled') {
-          throw new HttpError(409, '입찰 기록이 있는 경매는 취소한 뒤에 지울 수 있어요.');
+        // 진행 중인 경매에 입찰이 있으면 먼저 취소해야 한다 (마감·취소된 경매는 정리할 수 있음)
+        if (Number(c?.n ?? 0) > 0 && String(a.status) === 'open') {
+          throw new HttpError(409, '진행 중인 경매는 먼저 취소한 뒤에 지울 수 있어요.');
         }
         await tx`delete from carbonic_table.bids where auction_id = ${auctionId}`;
         await tx`delete from carbonic_table.auctions where id = ${auctionId}`;
