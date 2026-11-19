@@ -387,11 +387,13 @@ label.field input, label.field select, label.field textarea { font-weight: 600; 
 
 /* ---------- 미션 관리 ---------- */
 .mission-admin { display: grid; gap: 8px; }
-.mission-admin .row { display: grid; grid-template-columns: minmax(0, 1fr) 88px auto auto auto; gap: 8px; align-items: center; padding: 8px 10px; border: 1.5px solid var(--line-soft); background: var(--surface); }
+.mission-admin .row { display: grid; grid-template-columns: minmax(0, 1fr) 84px auto; gap: 8px; align-items: center; padding: 8px 10px; border: 1.5px solid var(--line-soft); background: var(--surface); }
+.mission-admin .row-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .mission-admin .row.off { background: var(--surface-2); opacity: .8; }
 .mission-admin .nm { font-weight: 750; font-size: 13.5px; min-width: 0; overflow-wrap: anywhere; }
 .mission-admin input[type="number"] { width: 100%; }
 .mission-admin .uses { font-size: 11.5px; color: var(--muted); font-weight: 750; white-space: nowrap; }
+.mission-admin .nm .uses { margin-left: 6px; }
 
 /* ---------- 대화상자 · 알림 ---------- */
 .modal {
@@ -467,7 +469,8 @@ label.field input, label.field select, label.field textarea { font-weight: 600; 
   .auction .price-row b { font-size: 15px; }
   .form-row, .form-row.three { grid-template-columns: 1fr; }
   .mission-admin .row { grid-template-columns: minmax(0, 1fr) 76px; grid-auto-rows: auto; }
-  .mission-admin .row .uses { grid-column: 1 / -1; }
+  .mission-admin .row-actions { grid-column: 1 / -1; justify-content: flex-start; }
+  .mission-admin .nm .uses { display: block; margin: 2px 0 0; }
   .modal { padding: 18px; }
   .toast { bottom: 80px; }
   .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }

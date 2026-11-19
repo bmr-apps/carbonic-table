@@ -55,6 +55,7 @@ export const api = {
   deleteActivity: (id) => request(`/activities/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   addMission: (name, air) => request('/missions', { method: 'POST', body: { name, air } }),
   patchMission: (id, patch) => request(`/missions/${encodeURIComponent(id)}`, { method: 'PATCH', body: patch }),
+  deleteMission: (id) => request(`/missions/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   addAuction: (payload) => request('/auctions', { method: 'POST', body: payload }),
   bid: (id, amount) => request(`/auctions/${encodeURIComponent(id)}/bid`, { method: 'POST', body: { amount } }),
   closeAuction: (id) => request(`/auctions/${encodeURIComponent(id)}/close`, { method: 'POST', body: {} }),

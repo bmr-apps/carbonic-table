@@ -572,11 +572,13 @@ function missionAdminHtml() {
   if (!list.length) return `<div class="empty"><b>찾는 미션이 없어요.</b></div>`;
   return list.map((m) => `
     <div class="row ${m.active ? '' : 'off'}" data-mission="${esc(m.id)}">
-      <span class="nm">${esc(m.name)}</span>
+      <span class="nm">${esc(m.name)} <span class="uses">사용 ${nf(m.uses)}회</span></span>
       <input type="number" min="1" max="100" step="1" value="${m.air}" aria-label="${esc(m.name)} 공기" id="mission-air-${esc(m.id)}">
-      <button type="button" class="btn tiny ghost" data-action="save-mission-air" data-id="${esc(m.id)}">공기 저장</button>
-      <button type="button" class="btn tiny ${m.active ? '' : 'primary'}" data-action="toggle-mission" data-id="${esc(m.id)}" data-active="${m.active ? '1' : '0'}">${m.active ? '숨기기' : '다시 쓰기'}</button>
-      <span class="uses">사용 ${nf(m.uses)}회</span>
+      <div class="row-actions">
+        <button type="button" class="btn tiny ghost" data-action="save-mission-air" data-id="${esc(m.id)}">공기 저장</button>
+        <button type="button" class="btn tiny ${m.active ? '' : 'primary'}" data-action="toggle-mission" data-id="${esc(m.id)}" data-active="${m.active ? '1' : '0'}">${m.active ? '숨기기' : '다시 쓰기'}</button>
+        ${m.uses === 0 ? `<button type="button" class="btn tiny ghost" data-action="delete-mission" data-id="${esc(m.id)}">지우기</button>` : ''}
+      </div>
     </div>`).join('');
 }
 
@@ -686,6 +688,16 @@ document.addEventListener('click', async (e) => {
       toast(next ? '미션을 다시 켰어요.' : '미션을 숨겼어요.', 'ok');
       await load({ quiet: true });
     } catch (err) { toast(err.message || '바꾸지 못했어요.', 'err'); }
+    return;
+  }
+  if (action === 'delete-mission') {
+    const ok = await askConfirm('이 미션을 목록에서 지울까요? 실천 기록이 없는 미션만 지울 수 있어요.');
+    if (!ok) return;
+    try {
+      await withBusy(el, () => api.deleteMission(el.dataset.id));
+      toast('미션을 지웠어요.', 'ok');
+      await load({ quiet: true });
+    } catch (err) { toast(err.message || '지우지 못했어요.', 'err'); }
     return;
   }
   if (action === 'save-mission-air') {

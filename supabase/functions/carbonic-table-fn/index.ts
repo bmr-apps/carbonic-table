@@ -452,6 +452,18 @@ Deno.serve(async (req) => {
       return json(req, 200, { ok: true, mission: row });
     }
 
+    // 실천 기록이 없는 미션만 지울 수 있다 (기록이 있으면 숨기기만)
+    if (parts[0] === 'missions' && parts[1] && req.method === 'DELETE') {
+      requireOperator();
+      const id = parts[1];
+      if (!/^\d{1,12}$/.test(id)) return json(req, 400, { error: '미션 번호가 올바르지 않습니다.' });
+      const [u] = await db`select count(*)::int as n from carbonic_table.activities where mission_id = ${id}` as unknown as Row[];
+      if (Number(u?.n ?? 0) > 0) return json(req, 409, { error: '이 미션으로 등록한 실천이 있어요. 지우지 말고 숨겨 주세요.' });
+      const [row] = await db`delete from carbonic_table.missions where id = ${id} returning id, name` as unknown as Row[];
+      if (!row) return json(req, 404, { error: '그 미션을 찾지 못했어요.' });
+      return json(req, 200, { ok: true, deleted: String(row.id) });
+    }
+
     if (parts[0] === 'auctions' && parts.length === 1 && req.method === 'POST') {
       requireOperator();
       const body = await readJson(req);
