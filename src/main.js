@@ -1458,6 +1458,7 @@ document.addEventListener('submit', async (e) => {
       await withBusy(btn, () => (editing ? api.patchAuction(editing, payload) : api.addAuction(payload)));
       toast(editing ? '물품 정보를 고쳤어요.' : '물품을 등록했어요. 대기 중 목록에서 볼 수 있어요.', 'ok');
       state.lotForm = null;
+      render();
       await load({ quiet: true });
     } catch (err) { toast(err.message || '처리하지 못했어요.', 'err'); }
     return;
@@ -1486,6 +1487,7 @@ document.addEventListener('submit', async (e) => {
       await withBusy(btn, () => (state.editNotice ? api.patchNotice(state.editNotice, payload) : api.addNotice(payload)));
       toast(state.editNotice ? '공지를 고쳤어요.' : '공지를 올렸어요.', 'ok');
       state.editNotice = null;
+      render();
       await load({ quiet: true });
     } catch (err) { toast(err.message || '공지를 올리지 못했어요.', 'err'); }
     return;
