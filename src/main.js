@@ -1025,6 +1025,7 @@ function adminSeasons() {
             ${s.status !== 'active' ? `<button type="button" class="btn tiny primary" data-action="season-activate" data-id="${s.id}">활성으로 전환</button>` : ''}
             ${s.status !== 'ended' ? `<button type="button" class="btn tiny ghost" data-action="season-end" data-id="${s.id}">시즌 종료</button>` : ''}
             <button type="button" class="btn tiny ghost" data-action="season-view" data-id="${s.id}">보기</button>
+            ${s.status !== 'active' && s.count === 0 && s.auctions === 0 ? `<button type="button" class="btn tiny ghost" data-action="season-delete" data-id="${s.id}" data-name="${esc(s.name)}">지우기</button>` : ''}
           </div>
         </li>`).join('')}
     </ul>
@@ -1324,6 +1325,17 @@ document.addEventListener('click', async (e) => {
       toast('시즌을 끝냈어요.', 'ok');
       await load({ quiet: true });
     } catch (err) { toast(err.message || '끝내지 못했어요.', 'err'); }
+    return;
+  }
+  if (action === 'season-delete') {
+    const ok = await askConfirm(`‘${el.dataset.name}’ 시즌을 지울까요? 실천·경매 기록이 없는 시즌만 지울 수 있어요.`);
+    if (!ok) return;
+    try {
+      await withBusy(el, () => api.deleteSeason(el.dataset.id));
+      toast('시즌을 지웠어요.', 'ok');
+      if (state.seasonId === Number(el.dataset.id)) state.seasonId = null;
+      await load({ quiet: true });
+    } catch (err) { toast(err.message || '지우지 못했어요.', 'err'); }
     return;
   }
   if (action === 'season-view') {

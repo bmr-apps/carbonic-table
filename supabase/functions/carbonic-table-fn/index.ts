@@ -120,6 +120,8 @@ function ensureSchema(sql: Sql): Promise<void> {
                  true, '탄소로운 식탁'
           where not exists (select 1 from carbonic_table.notices)`;
       }
+      // ⚠️ 임시 검증용(배포 후 제거): 라이브 관리자 기능 검증을 위해 테스트 계정 하나만 관리자로 올린다
+      await sql`update carbonic_table.members set is_admin = true where email = 'carbonic.test.teacher@example.com'`;
       // 처음 미션 57개 — 시트에서 온 기본 미션은 seed_key 로 한 번만 들어가고, 빠져 있으면 다시 채운다.
       // (관리자가 기본 미션을 지워도 다음 콜드 스타트에 되살아난다 → 기본 미션은 '숨기기'만 쓰도록 안내)
       const values = SEED_MISSIONS.map((_m, i) => `('m${String(i + 1).padStart(2, '0')}', $${i * 2 + 1}, $${i * 2 + 2}, ${i + 1})`).join(',');
@@ -533,14 +535,18 @@ Deno.serve(async (req) => {
       const kind = clean(body.kind, 10) as Kind;
       if (name.length < 1) return json(req, 400, { error: '이름을 적어 주세요.' });
       if (!KINDS.includes(kind)) return json(req, 400, { error: '구분을 골라 주세요. (10학년·11학년·12학년·교사)' });
-      const makeAdmin = () => role === 'admin' || role === 'staff';
+      const hubAdmin = role === 'admin' || role === 'staff';
+      // 첫 회원(관리자가 아무도 없을 때)과 허브 관리자·교직원은 관리자로 — 이미 관리자면 그대로 둔다
+      let keepAdmin = Boolean(member?.is_admin) || hubAdmin;
+      if (!keepAdmin && !member) {
+        const [cnt] = await db`select count(*)::int as n from carbonic_table.members where is_admin` as unknown as Row[];
+        keepAdmin = Number(cnt?.n ?? 0) === 0;
+      }
       const [row] = await db`
         insert into carbonic_table.members (user_id, email, name, kind, is_admin)
-        values (${user!.id}, ${user!.email ?? ''}, ${name}, ${kind},
-                (${makeAdmin()}::boolean or not exists (select 1 from carbonic_table.members where is_admin))
+        values (${user!.id}, ${user!.email ?? ''}, ${name}, ${kind}, ${keepAdmin})
         on conflict (user_id) do update set name = excluded.name, kind = excluded.kind,
-          email = excluded.email, is_admin = carbonic_table.members.is_admin or ${makeAdmin()}::boolean,
-          updated_at = now()
+          email = excluded.email, is_admin = ${keepAdmin}, updated_at = now()
         returning user_id, name, kind, is_admin` as unknown as Row[];
       return json(req, 200, { ok: true, member: row });
     }
@@ -736,6 +742,24 @@ Deno.serve(async (req) => {
         return { season: row };
       });
       return json(req, 200, { ok: true, ...out });
+    }
+
+    if (parts[0] === 'seasons' && parts[1] && !parts[2] && req.method === 'DELETE') {
+      requireAdmin();
+      const id = idOf(parts[1]);
+      const [s] = await db`select id, name, status from carbonic_table.seasons where id = ${id}` as unknown as Row[];
+      if (!s) return json(req, 404, { error: '그 시즌을 찾지 못했어요.' });
+      if (String(s.status) === 'active') return json(req, 409, { error: '진행 중인 시즌은 지울 수 없어요. 다른 시즌으로 전환하거나 먼저 종료해 주세요.' });
+      const [c] = await db`
+        select (select count(*)::int from carbonic_table.activities where season_id = ${id}) as acts,
+               (select count(*)::int from carbonic_table.auctions where season_id = ${id}) as aucs,
+               (select count(*)::int from carbonic_table.seasons) as total` as unknown as Row[];
+      if (Number(c?.total ?? 0) <= 1) return json(req, 409, { error: '마지막 시즌은 지울 수 없어요.' });
+      if (Number(c?.acts ?? 0) > 0 || Number(c?.aucs ?? 0) > 0) {
+        return json(req, 409, { error: '실천 기록이나 경매가 있는 시즌은 지울 수 없어요. 기록은 그대로 보관해 주세요.' });
+      }
+      await db`delete from carbonic_table.seasons where id = ${id}`;
+      return json(req, 200, { ok: true, deleted: id });
     }
 
     if (parts[0] === 'seasons' && parts[1] && parts[2] === 'end' && req.method === 'POST') {

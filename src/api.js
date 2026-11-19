@@ -64,6 +64,7 @@ export const api = {
   addSeason: (name, note) => request('/seasons', { method: 'POST', body: { name, note } }),
   activateSeason: (id) => request(`/seasons/${seg(id)}/activate`, { method: 'POST', body: {} }),
   endSeason: (id) => request(`/seasons/${seg(id)}/end`, { method: 'POST', body: {} }),
+  deleteSeason: (id) => request(`/seasons/${seg(id)}`, { method: 'DELETE' }),
   addMission: (name, air) => request('/missions', { method: 'POST', body: { name, air } }),
   patchMission: (id, patch) => request(`/missions/${seg(id)}`, { method: 'PATCH', body: patch }),
   deleteMission: (id) => request(`/missions/${seg(id)}`, { method: 'DELETE' }),
