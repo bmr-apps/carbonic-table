@@ -118,8 +118,8 @@
     <ellipse cx="0" cy="1.6" rx="7.4" ry="2.3" fill="#0a2333" opacity=".2"/>
     <g transform="scale(.82)">
       <path d="M-5-14.4-8.4-19.4" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/><path d="M5-14.4 8.4-19.4" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/>
-      <circle cx="-8.7" cy="-19.9" r="1.5" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
-      <circle cx="8.7" cy="-19.9" r="1.5" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
+      <circle cx="-8.7" cy="-19.9" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
+      <circle cx="8.7" cy="-19.9" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
       <path d="M-3.4-6.6h2.8v6.4h-2.8z" fill="#2b4f74"/>
       <path d="M.6-6.6h2.8v6.4h-2.8z" fill="#2b4f74"/>
       <path d="M-5.6-15.6q0-2.6 2.6-2.6h6q2.6 0 2.6 2.6v7.2q0 2.6-2.6 2.6h-6q-2.6 0-2.6-2.6z"
@@ -194,8 +194,8 @@
     <ellipse cx="0" cy="1.6" rx="7.4" ry="2.3" fill="#0a2333" opacity=".2"/>
     <g transform="scale(.82)">
       <path d="M-5-14.4-8.4-19.4" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/><path d="M5-14.4 8.4-19.4" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/>
-      <circle cx="-8.7" cy="-19.9" r="1.5" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
-      <circle cx="8.7" cy="-19.9" r="1.5" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
+      <circle cx="-8.7" cy="-19.9" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
+      <circle cx="8.7" cy="-19.9" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
       <path d="M-3.4-6.6h2.8v6.4h-2.8z" fill="#2b4f74"/>
       <path d="M.6-6.6h2.8v6.4h-2.8z" fill="#2b4f74"/>
       <path d="M-5.6-15.6q0-2.6 2.6-2.6h6q2.6 0 2.6 2.6v7.2q0 2.6-2.6 2.6h-6q-2.6 0-2.6-2.6z"
@@ -419,8 +419,8 @@
     <ellipse cx="0" cy="1.6" rx="7.4" ry="2.3" fill="#0a2333" opacity=".2"/>
     <g transform="scale(.82)">
       <path d="M-5-14.4-8.4-19.4" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/><path d="M5-14.4 8.4-19.4" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/>
-      <circle cx="-8.7" cy="-19.9" r="1.5" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
-      <circle cx="8.7" cy="-19.9" r="1.5" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
+      <circle cx="-8.7" cy="-19.9" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
+      <circle cx="8.7" cy="-19.9" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
       <path d="M-3.4-6.6h2.8v6.4h-2.8z" fill="#2b4f74"/>
       <path d="M.6-6.6h2.8v6.4h-2.8z" fill="#2b4f74"/>
       <path d="M-5.6-15.6q0-2.6 2.6-2.6h6q2.6 0 2.6 2.6v7.2q0 2.6-2.6 2.6h-6q-2.6 0-2.6-2.6z"
@@ -495,8 +495,8 @@
     <ellipse cx="0" cy="1.6" rx="7.4" ry="2.3" fill="#0a2333" opacity=".2"/>
     <g transform="scale(.82)">
       <path d="M-5-14.4-8.4-19.4" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/><path d="M5-14.4 8.4-19.4" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/>
-      <circle cx="-8.7" cy="-19.9" r="1.5" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
-      <circle cx="8.7" cy="-19.9" r="1.5" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
+      <circle cx="-8.7" cy="-19.9" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
+      <circle cx="8.7" cy="-19.9" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
       <path d="M-3.4-6.6h2.8v6.4h-2.8z" fill="#2b4f74"/>
       <path d="M.6-6.6h2.8v6.4h-2.8z" fill="#2b4f74"/>
       <path d="M-5.6-15.6q0-2.6 2.6-2.6h6q2.6 0 2.6 2.6v7.2q0 2.6-2.6 2.6h-6q-2.6 0-2.6-2.6z"
@@ -720,8 +720,8 @@
     <ellipse cx="0" cy="1.6" rx="7.4" ry="2.3" fill="#0a2333" opacity=".2"/>
     <g transform="scale(.82)">
       <path d="M-5-14.4-8.4-19.4" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/><path d="M5-14.4 8.4-19.4" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/>
-      <circle cx="-8.7" cy="-19.9" r="1.5" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
-      <circle cx="8.7" cy="-19.9" r="1.5" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
+      <circle cx="-8.7" cy="-19.9" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
+      <circle cx="8.7" cy="-19.9" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
       <path d="M-3.4-6.6h2.8v6.4h-2.8z" fill="#2b4f74"/>
       <path d="M.6-6.6h2.8v6.4h-2.8z" fill="#2b4f74"/>
       <path d="M-5.6-15.6q0-2.6 2.6-2.6h6q2.6 0 2.6 2.6v7.2q0 2.6-2.6 2.6h-6q-2.6 0-2.6-2.6z"
@@ -796,8 +796,8 @@
     <ellipse cx="0" cy="1.6" rx="7.4" ry="2.3" fill="#0a2333" opacity=".2"/>
     <g transform="scale(.82)">
       <path d="M-5-14.4-8.4-19.4" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/><path d="M5-14.4 8.4-19.4" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/>
-      <circle cx="-8.7" cy="-19.9" r="1.5" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
-      <circle cx="8.7" cy="-19.9" r="1.5" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
+      <circle cx="-8.7" cy="-19.9" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
+      <circle cx="8.7" cy="-19.9" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
       <path d="M-3.4-6.6h2.8v6.4h-2.8z" fill="#2b4f74"/>
       <path d="M.6-6.6h2.8v6.4h-2.8z" fill="#2b4f74"/>
       <path d="M-5.6-15.6q0-2.6 2.6-2.6h6q2.6 0 2.6 2.6v7.2q0 2.6-2.6 2.6h-6q-2.6 0-2.6-2.6z"
@@ -934,22 +934,22 @@
         <feGaussianBlur stdDeviation="4"/>
       </filter>
       <linearGradient id="earth-land-s1" gradientUnits="userSpaceOnUse" x1="0" y1="18" x2="0" y2="224">
-      <stop offset="1.0%" stop-color="#e8e4e6"/>
-      <stop offset="12.6%" stop-color="#d3d7c9"/>
-      <stop offset="18.4%" stop-color="#98b896"/>
-      <stop offset="23.3%" stop-color="#75a974"/>
-      <stop offset="30.1%" stop-color="#5c965b"/>
-      <stop offset="35.0%" stop-color="#83ad56"/>
-      <stop offset="39.8%" stop-color="#d4bb80"/>
-      <stop offset="42.7%" stop-color="#b7b964"/>
-      <stop offset="46.6%" stop-color="#5a9a5b"/>
-      <stop offset="49.5%" stop-color="#3f8c4d"/>
-      <stop offset="53.4%" stop-color="#509756"/>
-      <stop offset="59.2%" stop-color="#ccb371"/>
-      <stop offset="64.1%" stop-color="#659e66"/>
-      <stop offset="71.8%" stop-color="#91b38f"/>
-      <stop offset="88.3%" stop-color="#d5d8d7"/>
-      <stop offset="99.0%" stop-color="#e8e4e6"/>
+      <stop offset="1.0%" stop-color="#eaebed"/>
+      <stop offset="12.6%" stop-color="#d5ddcf"/>
+      <stop offset="18.4%" stop-color="#98be9a"/>
+      <stop offset="23.3%" stop-color="#73ad78"/>
+      <stop offset="30.1%" stop-color="#599a5d"/>
+      <stop offset="35.0%" stop-color="#82b259"/>
+      <stop offset="39.8%" stop-color="#d6c084"/>
+      <stop offset="42.7%" stop-color="#b8be67"/>
+      <stop offset="46.6%" stop-color="#579f5d"/>
+      <stop offset="49.5%" stop-color="#3c904f"/>
+      <stop offset="53.4%" stop-color="#4d9b59"/>
+      <stop offset="59.2%" stop-color="#ceb875"/>
+      <stop offset="64.1%" stop-color="#63a269"/>
+      <stop offset="71.8%" stop-color="#91b893"/>
+      <stop offset="88.3%" stop-color="#d7dede"/>
+      <stop offset="99.0%" stop-color="#eaebed"/>
     </linearGradient>
       <clipPath id="earth-clip-s1"><circle cx="120" cy="120" r="92"/></clipPath>
     </defs>
@@ -1240,22 +1240,22 @@
         <feGaussianBlur stdDeviation="4"/>
       </filter>
       <linearGradient id="earth-land-s1" gradientUnits="userSpaceOnUse" x1="0" y1="18" x2="0" y2="224">
-      <stop offset="1.0%" stop-color="#e8e4e6"/>
-      <stop offset="12.6%" stop-color="#d3d7c9"/>
-      <stop offset="18.4%" stop-color="#98b896"/>
-      <stop offset="23.3%" stop-color="#75a974"/>
-      <stop offset="30.1%" stop-color="#5c965b"/>
-      <stop offset="35.0%" stop-color="#83ad56"/>
-      <stop offset="39.8%" stop-color="#d4bb80"/>
-      <stop offset="42.7%" stop-color="#b7b964"/>
-      <stop offset="46.6%" stop-color="#5a9a5b"/>
-      <stop offset="49.5%" stop-color="#3f8c4d"/>
-      <stop offset="53.4%" stop-color="#509756"/>
-      <stop offset="59.2%" stop-color="#ccb371"/>
-      <stop offset="64.1%" stop-color="#659e66"/>
-      <stop offset="71.8%" stop-color="#91b38f"/>
-      <stop offset="88.3%" stop-color="#d5d8d7"/>
-      <stop offset="99.0%" stop-color="#e8e4e6"/>
+      <stop offset="1.0%" stop-color="#eaebed"/>
+      <stop offset="12.6%" stop-color="#d5ddcf"/>
+      <stop offset="18.4%" stop-color="#98be9a"/>
+      <stop offset="23.3%" stop-color="#73ad78"/>
+      <stop offset="30.1%" stop-color="#599a5d"/>
+      <stop offset="35.0%" stop-color="#82b259"/>
+      <stop offset="39.8%" stop-color="#d6c084"/>
+      <stop offset="42.7%" stop-color="#b8be67"/>
+      <stop offset="46.6%" stop-color="#579f5d"/>
+      <stop offset="49.5%" stop-color="#3c904f"/>
+      <stop offset="53.4%" stop-color="#4d9b59"/>
+      <stop offset="59.2%" stop-color="#ceb875"/>
+      <stop offset="64.1%" stop-color="#63a269"/>
+      <stop offset="71.8%" stop-color="#91b893"/>
+      <stop offset="88.3%" stop-color="#d7dede"/>
+      <stop offset="99.0%" stop-color="#eaebed"/>
     </linearGradient>
       <clipPath id="earth-clip-s1"><circle cx="120" cy="120" r="92"/></clipPath>
     </defs>
@@ -1546,22 +1546,22 @@
         <feGaussianBlur stdDeviation="4"/>
       </filter>
       <linearGradient id="earth-land-s1" gradientUnits="userSpaceOnUse" x1="0" y1="18" x2="0" y2="224">
-      <stop offset="1.0%" stop-color="#e8e4e6"/>
-      <stop offset="12.6%" stop-color="#d3d7c9"/>
-      <stop offset="18.4%" stop-color="#98b896"/>
-      <stop offset="23.3%" stop-color="#75a974"/>
-      <stop offset="30.1%" stop-color="#5c965b"/>
-      <stop offset="35.0%" stop-color="#83ad56"/>
-      <stop offset="39.8%" stop-color="#d4bb80"/>
-      <stop offset="42.7%" stop-color="#b7b964"/>
-      <stop offset="46.6%" stop-color="#5a9a5b"/>
-      <stop offset="49.5%" stop-color="#3f8c4d"/>
-      <stop offset="53.4%" stop-color="#509756"/>
-      <stop offset="59.2%" stop-color="#ccb371"/>
-      <stop offset="64.1%" stop-color="#659e66"/>
-      <stop offset="71.8%" stop-color="#91b38f"/>
-      <stop offset="88.3%" stop-color="#d5d8d7"/>
-      <stop offset="99.0%" stop-color="#e8e4e6"/>
+      <stop offset="1.0%" stop-color="#eaebed"/>
+      <stop offset="12.6%" stop-color="#d5ddcf"/>
+      <stop offset="18.4%" stop-color="#98be9a"/>
+      <stop offset="23.3%" stop-color="#73ad78"/>
+      <stop offset="30.1%" stop-color="#599a5d"/>
+      <stop offset="35.0%" stop-color="#82b259"/>
+      <stop offset="39.8%" stop-color="#d6c084"/>
+      <stop offset="42.7%" stop-color="#b8be67"/>
+      <stop offset="46.6%" stop-color="#579f5d"/>
+      <stop offset="49.5%" stop-color="#3c904f"/>
+      <stop offset="53.4%" stop-color="#4d9b59"/>
+      <stop offset="59.2%" stop-color="#ceb875"/>
+      <stop offset="64.1%" stop-color="#63a269"/>
+      <stop offset="71.8%" stop-color="#91b893"/>
+      <stop offset="88.3%" stop-color="#d7dede"/>
+      <stop offset="99.0%" stop-color="#eaebed"/>
     </linearGradient>
       <clipPath id="earth-clip-s1"><circle cx="120" cy="120" r="92"/></clipPath>
     </defs>
@@ -1839,7 +1839,7 @@
       <radialGradient id="earth-ocean-s2" cx="32%" cy="26%" r="88%">
         <stop offset="0%" stop-color="#69b8c0"/>
         <stop offset="46%" stop-color="#1e6c78"/>
-        <stop offset="100%" stop-color="#0f3942"/>
+        <stop offset="100%" stop-color="#113a42"/>
       </radialGradient>
       <radialGradient id="earth-atmo-s2" cx="50%" cy="50%" r="50%">
         <stop offset="70%" stop-color="#c6b7ac" stop-opacity="0"/>
@@ -1855,22 +1855,22 @@
         <feGaussianBlur stdDeviation="4"/>
       </filter>
       <linearGradient id="earth-land-s2" gradientUnits="userSpaceOnUse" x1="0" y1="18" x2="0" y2="224">
-      <stop offset="1.0%" stop-color="#d8b5ad"/>
-      <stop offset="12.6%" stop-color="#caac9a"/>
-      <stop offset="18.4%" stop-color="#a39777"/>
-      <stop offset="23.3%" stop-color="#8b8d61"/>
-      <stop offset="30.1%" stop-color="#7a8050"/>
-      <stop offset="35.0%" stop-color="#95904d"/>
-      <stop offset="39.8%" stop-color="#cb9969"/>
-      <stop offset="42.7%" stop-color="#b79856"/>
-      <stop offset="46.6%" stop-color="#798350"/>
-      <stop offset="49.5%" stop-color="#677a47"/>
-      <stop offset="53.4%" stop-color="#72814d"/>
-      <stop offset="59.2%" stop-color="#c6945f"/>
-      <stop offset="64.1%" stop-color="#818657"/>
-      <stop offset="71.8%" stop-color="#9e9473"/>
-      <stop offset="88.3%" stop-color="#cbaca3"/>
-      <stop offset="99.0%" stop-color="#d8b5ad"/>
+      <stop offset="1.0%" stop-color="#dfc7c1"/>
+      <stop offset="12.6%" stop-color="#cfbdab"/>
+      <stop offset="18.4%" stop-color="#a3a685"/>
+      <stop offset="23.3%" stop-color="#889a6b"/>
+      <stop offset="30.1%" stop-color="#758c58"/>
+      <stop offset="35.0%" stop-color="#939d55"/>
+      <stop offset="39.8%" stop-color="#d0a875"/>
+      <stop offset="42.7%" stop-color="#baa75f"/>
+      <stop offset="46.6%" stop-color="#738f58"/>
+      <stop offset="49.5%" stop-color="#5f854e"/>
+      <stop offset="53.4%" stop-color="#6c8d55"/>
+      <stop offset="59.2%" stop-color="#caa269"/>
+      <stop offset="64.1%" stop-color="#7c9261"/>
+      <stop offset="71.8%" stop-color="#9da27f"/>
+      <stop offset="88.3%" stop-color="#d1beb6"/>
+      <stop offset="99.0%" stop-color="#dfc7c1"/>
     </linearGradient>
       <clipPath id="earth-clip-s2"><circle cx="120" cy="120" r="92"/></clipPath>
     </defs>
@@ -2111,7 +2111,8 @@
       <circle cx="0" cy="-13.4" r="4.7" fill="#fcfeff" stroke="#b9cbd8" stroke-width="1.1"/>
       <ellipse cx="0" cy="-11.6" rx="2.7" ry="2" fill="#f2f7fb" stroke="#d5e2ec" stroke-width=".5"/>
       <ellipse cx="0" cy="-12.4" rx="1.15" ry=".8" fill="#33383f"/>
-      <path d="M-2.9-14.3l1.9 1.1-1.9 1.1M2.9-14.3l-1.9 1.1 1.9 1.1" fill="none" stroke="#2d3138" stroke-width=".85" stroke-linecap="round"/>
+      <circle cx="-1.8" cy="-13.4" r=".82" fill="#2d3138"/><circle cx="1.8" cy="-13.4" r=".82" fill="#2d3138"/>
+    <path d="M-3.4-15.6l2.3.7M3.4-15.6l-2.3.7" fill="none" stroke="#5a5248" stroke-width=".7" stroke-linecap="round"/>
       <ellipse cx="-5.2" cy="-2" rx="2.9" ry="2" fill="#fcfeff" stroke="#c4d4e0" stroke-width=".8"/>
       <ellipse cx="5.2" cy="-2" rx="2.9" ry="2" fill="#fcfeff" stroke="#c4d4e0" stroke-width=".8"/>
       <ellipse cx="0" cy="-10.6" rx="1.1" ry="1.4" fill="#c25a63"/><path d="M-1.1-9.4q1.1.9 2.2 0" fill="#ff8f9c" stroke="#b8515b" stroke-width=".3"/>
@@ -2155,7 +2156,7 @@
       <radialGradient id="earth-ocean-s2" cx="32%" cy="26%" r="88%">
         <stop offset="0%" stop-color="#69b8c0"/>
         <stop offset="46%" stop-color="#1e6c78"/>
-        <stop offset="100%" stop-color="#0f3942"/>
+        <stop offset="100%" stop-color="#113a42"/>
       </radialGradient>
       <radialGradient id="earth-atmo-s2" cx="50%" cy="50%" r="50%">
         <stop offset="70%" stop-color="#c6b7ac" stop-opacity="0"/>
@@ -2171,22 +2172,22 @@
         <feGaussianBlur stdDeviation="4"/>
       </filter>
       <linearGradient id="earth-land-s2" gradientUnits="userSpaceOnUse" x1="0" y1="18" x2="0" y2="224">
-      <stop offset="1.0%" stop-color="#d8b5ad"/>
-      <stop offset="12.6%" stop-color="#caac9a"/>
-      <stop offset="18.4%" stop-color="#a39777"/>
-      <stop offset="23.3%" stop-color="#8b8d61"/>
-      <stop offset="30.1%" stop-color="#7a8050"/>
-      <stop offset="35.0%" stop-color="#95904d"/>
-      <stop offset="39.8%" stop-color="#cb9969"/>
-      <stop offset="42.7%" stop-color="#b79856"/>
-      <stop offset="46.6%" stop-color="#798350"/>
-      <stop offset="49.5%" stop-color="#677a47"/>
-      <stop offset="53.4%" stop-color="#72814d"/>
-      <stop offset="59.2%" stop-color="#c6945f"/>
-      <stop offset="64.1%" stop-color="#818657"/>
-      <stop offset="71.8%" stop-color="#9e9473"/>
-      <stop offset="88.3%" stop-color="#cbaca3"/>
-      <stop offset="99.0%" stop-color="#d8b5ad"/>
+      <stop offset="1.0%" stop-color="#dfc7c1"/>
+      <stop offset="12.6%" stop-color="#cfbdab"/>
+      <stop offset="18.4%" stop-color="#a3a685"/>
+      <stop offset="23.3%" stop-color="#889a6b"/>
+      <stop offset="30.1%" stop-color="#758c58"/>
+      <stop offset="35.0%" stop-color="#939d55"/>
+      <stop offset="39.8%" stop-color="#d0a875"/>
+      <stop offset="42.7%" stop-color="#baa75f"/>
+      <stop offset="46.6%" stop-color="#738f58"/>
+      <stop offset="49.5%" stop-color="#5f854e"/>
+      <stop offset="53.4%" stop-color="#6c8d55"/>
+      <stop offset="59.2%" stop-color="#caa269"/>
+      <stop offset="64.1%" stop-color="#7c9261"/>
+      <stop offset="71.8%" stop-color="#9da27f"/>
+      <stop offset="88.3%" stop-color="#d1beb6"/>
+      <stop offset="99.0%" stop-color="#dfc7c1"/>
     </linearGradient>
       <clipPath id="earth-clip-s2"><circle cx="120" cy="120" r="92"/></clipPath>
     </defs>
@@ -2427,7 +2428,8 @@
       <circle cx="0" cy="-13.4" r="4.7" fill="#fcfeff" stroke="#b9cbd8" stroke-width="1.1"/>
       <ellipse cx="0" cy="-11.6" rx="2.7" ry="2" fill="#f2f7fb" stroke="#d5e2ec" stroke-width=".5"/>
       <ellipse cx="0" cy="-12.4" rx="1.15" ry=".8" fill="#33383f"/>
-      <path d="M-2.9-14.3l1.9 1.1-1.9 1.1M2.9-14.3l-1.9 1.1 1.9 1.1" fill="none" stroke="#2d3138" stroke-width=".85" stroke-linecap="round"/>
+      <circle cx="-1.8" cy="-13.4" r=".82" fill="#2d3138"/><circle cx="1.8" cy="-13.4" r=".82" fill="#2d3138"/>
+    <path d="M-3.4-15.6l2.3.7M3.4-15.6l-2.3.7" fill="none" stroke="#5a5248" stroke-width=".7" stroke-linecap="round"/>
       <ellipse cx="-5.2" cy="-2" rx="2.9" ry="2" fill="#fcfeff" stroke="#c4d4e0" stroke-width=".8"/>
       <ellipse cx="5.2" cy="-2" rx="2.9" ry="2" fill="#fcfeff" stroke="#c4d4e0" stroke-width=".8"/>
       <ellipse cx="0" cy="-10.6" rx="1.1" ry="1.4" fill="#c25a63"/><path d="M-1.1-9.4q1.1.9 2.2 0" fill="#ff8f9c" stroke="#b8515b" stroke-width=".3"/>
@@ -2471,7 +2473,7 @@
       <radialGradient id="earth-ocean-s2" cx="32%" cy="26%" r="88%">
         <stop offset="0%" stop-color="#69b8c0"/>
         <stop offset="46%" stop-color="#1e6c78"/>
-        <stop offset="100%" stop-color="#0f3942"/>
+        <stop offset="100%" stop-color="#113a42"/>
       </radialGradient>
       <radialGradient id="earth-atmo-s2" cx="50%" cy="50%" r="50%">
         <stop offset="70%" stop-color="#c6b7ac" stop-opacity="0"/>
@@ -2487,22 +2489,22 @@
         <feGaussianBlur stdDeviation="4"/>
       </filter>
       <linearGradient id="earth-land-s2" gradientUnits="userSpaceOnUse" x1="0" y1="18" x2="0" y2="224">
-      <stop offset="1.0%" stop-color="#d8b5ad"/>
-      <stop offset="12.6%" stop-color="#caac9a"/>
-      <stop offset="18.4%" stop-color="#a39777"/>
-      <stop offset="23.3%" stop-color="#8b8d61"/>
-      <stop offset="30.1%" stop-color="#7a8050"/>
-      <stop offset="35.0%" stop-color="#95904d"/>
-      <stop offset="39.8%" stop-color="#cb9969"/>
-      <stop offset="42.7%" stop-color="#b79856"/>
-      <stop offset="46.6%" stop-color="#798350"/>
-      <stop offset="49.5%" stop-color="#677a47"/>
-      <stop offset="53.4%" stop-color="#72814d"/>
-      <stop offset="59.2%" stop-color="#c6945f"/>
-      <stop offset="64.1%" stop-color="#818657"/>
-      <stop offset="71.8%" stop-color="#9e9473"/>
-      <stop offset="88.3%" stop-color="#cbaca3"/>
-      <stop offset="99.0%" stop-color="#d8b5ad"/>
+      <stop offset="1.0%" stop-color="#dfc7c1"/>
+      <stop offset="12.6%" stop-color="#cfbdab"/>
+      <stop offset="18.4%" stop-color="#a3a685"/>
+      <stop offset="23.3%" stop-color="#889a6b"/>
+      <stop offset="30.1%" stop-color="#758c58"/>
+      <stop offset="35.0%" stop-color="#939d55"/>
+      <stop offset="39.8%" stop-color="#d0a875"/>
+      <stop offset="42.7%" stop-color="#baa75f"/>
+      <stop offset="46.6%" stop-color="#738f58"/>
+      <stop offset="49.5%" stop-color="#5f854e"/>
+      <stop offset="53.4%" stop-color="#6c8d55"/>
+      <stop offset="59.2%" stop-color="#caa269"/>
+      <stop offset="64.1%" stop-color="#7c9261"/>
+      <stop offset="71.8%" stop-color="#9da27f"/>
+      <stop offset="88.3%" stop-color="#d1beb6"/>
+      <stop offset="99.0%" stop-color="#dfc7c1"/>
     </linearGradient>
       <clipPath id="earth-clip-s2"><circle cx="120" cy="120" r="92"/></clipPath>
     </defs>
@@ -2743,7 +2745,8 @@
       <circle cx="0" cy="-13.4" r="4.7" fill="#fcfeff" stroke="#b9cbd8" stroke-width="1.1"/>
       <ellipse cx="0" cy="-11.6" rx="2.7" ry="2" fill="#f2f7fb" stroke="#d5e2ec" stroke-width=".5"/>
       <ellipse cx="0" cy="-12.4" rx="1.15" ry=".8" fill="#33383f"/>
-      <path d="M-2.9-14.3l1.9 1.1-1.9 1.1M2.9-14.3l-1.9 1.1 1.9 1.1" fill="none" stroke="#2d3138" stroke-width=".85" stroke-linecap="round"/>
+      <circle cx="-1.8" cy="-13.4" r=".82" fill="#2d3138"/><circle cx="1.8" cy="-13.4" r=".82" fill="#2d3138"/>
+    <path d="M-3.4-15.6l2.3.7M3.4-15.6l-2.3.7" fill="none" stroke="#5a5248" stroke-width=".7" stroke-linecap="round"/>
       <ellipse cx="-5.2" cy="-2" rx="2.9" ry="2" fill="#fcfeff" stroke="#c4d4e0" stroke-width=".8"/>
       <ellipse cx="5.2" cy="-2" rx="2.9" ry="2" fill="#fcfeff" stroke="#c4d4e0" stroke-width=".8"/>
       <ellipse cx="0" cy="-10.6" rx="1.1" ry="1.4" fill="#c25a63"/><path d="M-1.1-9.4q1.1.9 2.2 0" fill="#ff8f9c" stroke="#b8515b" stroke-width=".3"/>
@@ -2790,7 +2793,7 @@
       <radialGradient id="earth-ocean-s3" cx="32%" cy="26%" r="88%">
         <stop offset="0%" stop-color="#dab28f"/>
         <stop offset="46%" stop-color="#8e453a"/>
-        <stop offset="100%" stop-color="#4d201b"/>
+        <stop offset="100%" stop-color="#5d2d24"/>
       </radialGradient>
       <radialGradient id="earth-atmo-s3" cx="50%" cy="50%" r="50%">
         <stop offset="70%" stop-color="#e78f65" stop-opacity="0"/>
@@ -2806,22 +2809,22 @@
         <feGaussianBlur stdDeviation="4"/>
       </filter>
       <linearGradient id="earth-land-s3" gradientUnits="userSpaceOnUse" x1="0" y1="18" x2="0" y2="224">
-      <stop offset="1.0%" stop-color="#c2715d"/>
-      <stop offset="12.6%" stop-color="#be6f57"/>
-      <stop offset="18.4%" stop-color="#b2684d"/>
-      <stop offset="23.3%" stop-color="#aa6546"/>
-      <stop offset="30.1%" stop-color="#a56141"/>
-      <stop offset="35.0%" stop-color="#ad6640"/>
-      <stop offset="39.8%" stop-color="#be6948"/>
-      <stop offset="42.7%" stop-color="#b86843"/>
-      <stop offset="46.6%" stop-color="#a56241"/>
-      <stop offset="49.5%" stop-color="#a05f3e"/>
-      <stop offset="53.4%" stop-color="#a36240"/>
-      <stop offset="59.2%" stop-color="#bc6745"/>
-      <stop offset="64.1%" stop-color="#a76343"/>
-      <stop offset="71.8%" stop-color="#b0674b"/>
-      <stop offset="88.3%" stop-color="#be6f5a"/>
-      <stop offset="99.0%" stop-color="#c2715d"/>
+      <stop offset="1.0%" stop-color="#ce9280"/>
+      <stop offset="12.6%" stop-color="#c78d76"/>
+      <stop offset="18.4%" stop-color="#b38364"/>
+      <stop offset="23.3%" stop-color="#a77d59"/>
+      <stop offset="30.1%" stop-color="#9e7750"/>
+      <stop offset="35.0%" stop-color="#ac7f4f"/>
+      <stop offset="39.8%" stop-color="#c7845d"/>
+      <stop offset="42.7%" stop-color="#bd8354"/>
+      <stop offset="46.6%" stop-color="#9e7950"/>
+      <stop offset="49.5%" stop-color="#95744c"/>
+      <stop offset="53.4%" stop-color="#9a774f"/>
+      <stop offset="59.2%" stop-color="#c48158"/>
+      <stop offset="64.1%" stop-color="#a27a54"/>
+      <stop offset="71.8%" stop-color="#b08162"/>
+      <stop offset="88.3%" stop-color="#c78d7a"/>
+      <stop offset="99.0%" stop-color="#ce9280"/>
     </linearGradient>
       <clipPath id="earth-clip-s3"><circle cx="120" cy="120" r="92"/></clipPath>
     </defs>
@@ -3110,7 +3113,7 @@
       <radialGradient id="earth-ocean-s3" cx="32%" cy="26%" r="88%">
         <stop offset="0%" stop-color="#dab28f"/>
         <stop offset="46%" stop-color="#8e453a"/>
-        <stop offset="100%" stop-color="#4d201b"/>
+        <stop offset="100%" stop-color="#5d2d24"/>
       </radialGradient>
       <radialGradient id="earth-atmo-s3" cx="50%" cy="50%" r="50%">
         <stop offset="70%" stop-color="#e78f65" stop-opacity="0"/>
@@ -3126,22 +3129,22 @@
         <feGaussianBlur stdDeviation="4"/>
       </filter>
       <linearGradient id="earth-land-s3" gradientUnits="userSpaceOnUse" x1="0" y1="18" x2="0" y2="224">
-      <stop offset="1.0%" stop-color="#c2715d"/>
-      <stop offset="12.6%" stop-color="#be6f57"/>
-      <stop offset="18.4%" stop-color="#b2684d"/>
-      <stop offset="23.3%" stop-color="#aa6546"/>
-      <stop offset="30.1%" stop-color="#a56141"/>
-      <stop offset="35.0%" stop-color="#ad6640"/>
-      <stop offset="39.8%" stop-color="#be6948"/>
-      <stop offset="42.7%" stop-color="#b86843"/>
-      <stop offset="46.6%" stop-color="#a56241"/>
-      <stop offset="49.5%" stop-color="#a05f3e"/>
-      <stop offset="53.4%" stop-color="#a36240"/>
-      <stop offset="59.2%" stop-color="#bc6745"/>
-      <stop offset="64.1%" stop-color="#a76343"/>
-      <stop offset="71.8%" stop-color="#b0674b"/>
-      <stop offset="88.3%" stop-color="#be6f5a"/>
-      <stop offset="99.0%" stop-color="#c2715d"/>
+      <stop offset="1.0%" stop-color="#ce9280"/>
+      <stop offset="12.6%" stop-color="#c78d76"/>
+      <stop offset="18.4%" stop-color="#b38364"/>
+      <stop offset="23.3%" stop-color="#a77d59"/>
+      <stop offset="30.1%" stop-color="#9e7750"/>
+      <stop offset="35.0%" stop-color="#ac7f4f"/>
+      <stop offset="39.8%" stop-color="#c7845d"/>
+      <stop offset="42.7%" stop-color="#bd8354"/>
+      <stop offset="46.6%" stop-color="#9e7950"/>
+      <stop offset="49.5%" stop-color="#95744c"/>
+      <stop offset="53.4%" stop-color="#9a774f"/>
+      <stop offset="59.2%" stop-color="#c48158"/>
+      <stop offset="64.1%" stop-color="#a27a54"/>
+      <stop offset="71.8%" stop-color="#b08162"/>
+      <stop offset="88.3%" stop-color="#c78d7a"/>
+      <stop offset="99.0%" stop-color="#ce9280"/>
     </linearGradient>
       <clipPath id="earth-clip-s3"><circle cx="120" cy="120" r="92"/></clipPath>
     </defs>
@@ -3430,7 +3433,7 @@
       <radialGradient id="earth-ocean-s3" cx="32%" cy="26%" r="88%">
         <stop offset="0%" stop-color="#dab28f"/>
         <stop offset="46%" stop-color="#8e453a"/>
-        <stop offset="100%" stop-color="#4d201b"/>
+        <stop offset="100%" stop-color="#5d2d24"/>
       </radialGradient>
       <radialGradient id="earth-atmo-s3" cx="50%" cy="50%" r="50%">
         <stop offset="70%" stop-color="#e78f65" stop-opacity="0"/>
@@ -3446,22 +3449,22 @@
         <feGaussianBlur stdDeviation="4"/>
       </filter>
       <linearGradient id="earth-land-s3" gradientUnits="userSpaceOnUse" x1="0" y1="18" x2="0" y2="224">
-      <stop offset="1.0%" stop-color="#c2715d"/>
-      <stop offset="12.6%" stop-color="#be6f57"/>
-      <stop offset="18.4%" stop-color="#b2684d"/>
-      <stop offset="23.3%" stop-color="#aa6546"/>
-      <stop offset="30.1%" stop-color="#a56141"/>
-      <stop offset="35.0%" stop-color="#ad6640"/>
-      <stop offset="39.8%" stop-color="#be6948"/>
-      <stop offset="42.7%" stop-color="#b86843"/>
-      <stop offset="46.6%" stop-color="#a56241"/>
-      <stop offset="49.5%" stop-color="#a05f3e"/>
-      <stop offset="53.4%" stop-color="#a36240"/>
-      <stop offset="59.2%" stop-color="#bc6745"/>
-      <stop offset="64.1%" stop-color="#a76343"/>
-      <stop offset="71.8%" stop-color="#b0674b"/>
-      <stop offset="88.3%" stop-color="#be6f5a"/>
-      <stop offset="99.0%" stop-color="#c2715d"/>
+      <stop offset="1.0%" stop-color="#ce9280"/>
+      <stop offset="12.6%" stop-color="#c78d76"/>
+      <stop offset="18.4%" stop-color="#b38364"/>
+      <stop offset="23.3%" stop-color="#a77d59"/>
+      <stop offset="30.1%" stop-color="#9e7750"/>
+      <stop offset="35.0%" stop-color="#ac7f4f"/>
+      <stop offset="39.8%" stop-color="#c7845d"/>
+      <stop offset="42.7%" stop-color="#bd8354"/>
+      <stop offset="46.6%" stop-color="#9e7950"/>
+      <stop offset="49.5%" stop-color="#95744c"/>
+      <stop offset="53.4%" stop-color="#9a774f"/>
+      <stop offset="59.2%" stop-color="#c48158"/>
+      <stop offset="64.1%" stop-color="#a27a54"/>
+      <stop offset="71.8%" stop-color="#b08162"/>
+      <stop offset="88.3%" stop-color="#c78d7a"/>
+      <stop offset="99.0%" stop-color="#ce9280"/>
     </linearGradient>
       <clipPath id="earth-clip-s3"><circle cx="120" cy="120" r="92"/></clipPath>
     </defs>
