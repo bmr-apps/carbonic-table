@@ -1291,6 +1291,7 @@ function adminSeasons() {
   const list = d().seasons.slice().reverse();
   const cur = seasonOf();
   const e = cur?.earth || {};
+  const wp = Number(e.warming_pct ?? e.pollution_pct ?? 0);   // 서버 함수가 예전 응답을 줄 때만 쓰는 대비값
   return `<section class="card admin-panel" aria-labelledby="admin-season">
     <div class="card-head"><h2 id="admin-season">시즌 관리</h2><span class="badge soft">${nf(list.length)}개</span></div>
     ${cur ? `<div class="earth-admin">
@@ -1303,7 +1304,7 @@ function adminSeasons() {
         </div>
         <div class="form-actions">
           <button type="button" class="btn ghost" data-action="earth-reset" data-id="${cur.id}">탄소 기준 시각을 지금으로 리셋</button>
-          <span class="hint">지금 탄소 ${nf(e.emitted ?? 0)}개 · 공기 ${nf(e.air ?? 0)}개 · 순탄소 ${nf(e.net ?? 0)}개 (온난화 지수 ${nf(e.warming_pct ?? e.pollution_pct ?? 0)}% · ${tempText(Number(e.warming_pct ?? e.pollution_pct ?? 0) / 100)})</span>
+          <span class="hint">지금 탄소 ${nf(e.emitted ?? 0)}개 · 공기 ${nf(e.air ?? 0)}개 · 순탄소 ${nf(e.net ?? 0)}개 (온난화 지수 ${nf(wp)}% · ${tempText(wp / 100)})</span>
         </div>
         <p class="hint">탄소는 기준 시각부터 <b>한 시간마다</b> 쌓여 지구 기온을 올려요(크론 없이 계산). 리셋하면 그 시각부터 다시 세고, 지구는 그만큼 시원해져요.</p>
       </form>
