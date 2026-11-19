@@ -19,8 +19,8 @@
   --purple: #7e65c1;
   --purple-soft: #ebe7f6;
   /* 맑은 하늘 팔레트 — 바다(짙은 파랑) · 하늘(파랑) · 구름(연한 하늘빛 종이) */
-  --forest: #0b3d66;
-  --forest-2: #14649c;
+  --forest: #0d4a80;
+  --forest-2: #1567a6;
   --leaf: #2f7fc4;
   --leaf-soft: #e8f2fc;
   --mint: #d5e7f8;
@@ -291,12 +291,12 @@ img, svg { max-width: 100%; }
   display: grid; grid-template-rows: repeat(3, 1fr); background: var(--cream-2); min-width: 0;
 }
 .hero-stat {
-  padding: 14px 18px; border-bottom: var(--bw) solid #000; display: flex; align-items: center; justify-content: space-between; gap: 10px; color: #000;
+  padding: 14px 18px; border-bottom: var(--bw) solid #000; display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--ink);
 }
 .hero-stat:last-child { border-bottom: 0; }
 .hero-stat small { font-size: 12.5px; font-weight: 850; letter-spacing: .02em; }
 .hero-stat b { font-size: 26px; font-weight: 900; font-variant-numeric: tabular-nums; letter-spacing: -0.03em; }
-.bubbles { position: absolute; right: 12px; bottom: 10px; width: 120px; height: 90px; pointer-events: none; color: rgba(184, 242, 214, .5); }
+.bubbles { position: absolute; right: 12px; bottom: 10px; width: 120px; height: 90px; pointer-events: none; color: rgba(172, 212, 246, .55); }
 .bubbles .bub { position: absolute; width: 34px; height: 34px; }
 .bubbles .bub.b { right: 4px; top: 4px; width: 22px; height: 22px; }
 .bubbles .bub.c { right: 34px; bottom: 0; width: 16px; height: 16px; }
@@ -325,7 +325,7 @@ img, svg { max-width: 100%; }
 /* ---------- 학년/구분 ---------- */
 .kind-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 22px; }
 .kind-card { border: var(--bw) solid var(--line); background: var(--surface); box-shadow: var(--shadow-sm); overflow: hidden; }
-.kind-card header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; border-bottom: var(--bw) solid var(--line); font-weight: 900; color: #000; }
+.kind-card header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; border-bottom: var(--bw) solid var(--line); font-weight: 900; color: var(--ink); }
 .kind-card.k-10 { border-top: 6px solid var(--sky); }
 .kind-card.k-11 { border-top: 6px solid #d9b93c; }
 .kind-card.k-12 { border-top: 6px solid var(--leaf); }
@@ -491,7 +491,7 @@ label.check { display: inline-flex; align-items: center; gap: 8px; font-size: 13
   background: var(--surface); color: var(--ink); cursor: pointer; font-size: 13.5px; font-weight: 700; line-height: 1.4;
 }
 .mission-btn:hover { background: var(--yellow-soft); }
-.mission-btn.on { background: var(--mint); color: #000; box-shadow: 3px 3px 0 #000; }
+.mission-btn.on { background: var(--mint); color: var(--ink); box-shadow: 3px 3px 0 #000; }
 .mission-btn .air-pill { border: 1.5px solid currentColor; padding: 0 7px; font-weight: 900; font-size: 12px; white-space: nowrap; }
 .pick-sticky { position: sticky; top: 84px; display: grid; gap: 12px; }
 .pick-box { border: var(--bw) solid var(--line); background: var(--cream-2); color: var(--ink); padding: 14px; box-shadow: var(--shadow); border-top: 8px solid var(--forest); }
@@ -912,3 +912,13 @@ label.check { display: inline-flex; align-items: center; gap: 8px; font-size: 13
   .stepper .step { width: 44px; }
   .feed-photo { max-width: 100%; height: 160px; width: 100%; }
 }
+
+/* ---------- 다크모드 보정 (밝은 바탕 조각이 어두운 화면에서 눈부시지 않게) ---------- */
+[data-theme="dark"] .tile.hot { background: #16263a; }
+[data-theme="dark"] .react.on { background: #1b3350; }
+[data-theme="dark"] .winner { background: #16263a; }
+[data-theme="dark"] table.rank-board tr.top1 { background: #16263a; }
+[data-theme="dark"] .badge.open { background: #bcd9f2; }
+[data-theme="dark"] .toast.ok { background: #cfe5f8; }
+[data-theme="dark"] .earth-figure { background: #0d1c2b; }
+[data-theme="dark"] .hero-actions .btn.ghost, [data-theme="dark"] .hero-actions .btn:not(.primary) { background: #0f2438; color: #eaf5ff; }
