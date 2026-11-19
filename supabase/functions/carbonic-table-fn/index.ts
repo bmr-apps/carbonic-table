@@ -212,7 +212,7 @@ function earthOf(carbonPerHour: unknown, capacity: unknown, startedAt: unknown, 
   return {
     carbon_per_hour: cph,
     carbon_capacity: cap,
-    earth_started_at: startedAt == null ? null : String(startedAt),
+    earth_started_at: startedAt == null ? null : (startedAt instanceof Date ? startedAt.toISOString() : String(startedAt)),
     elapsed_seconds: elapsed,
     next_carbon_in: 3600 - (elapsed % 3600),
     emitted,
@@ -405,7 +405,8 @@ async function buildState(sql: Sql, req: Request) {
     where a.season_id = ${sid} and a.user_id = ${member.user_id}
     order by a.done_on desc, a.created_at desc, a.id desc limit 300` as unknown as Row[] : [];
   const mySummary = member && season ? await sql`
-    select mission_name, count(*)::int as n, coalesce(sum(air), 0)::int as air, max(done_on) as last_on
+    select mission_name, count(*)::int as n, coalesce(sum(air), 0)::int as air,
+           to_char(max(done_on), 'YYYY-MM-DD') as last_on
     from carbonic_table.activities
     where season_id = ${sid} and user_id = ${member.user_id}
     group by mission_name
