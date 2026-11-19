@@ -23,7 +23,7 @@ const mix3 = (a, b, c, k) => (k < 0.5 ? mixColor(a, b, k * 2) : mixColor(b, c, (
 const PALETTE = {
   oceanLight: ['#c2f5fc', '#5fb9c4', '#f3b184'],
   ocean: ['#2f9fda', '#146f7d', '#a63d2c'],
-  oceanDeep: ['#0a4a86', '#0a3b45', '#5a1a13'],
+  oceanDeep: ['#0a4a86', '#0a3b45', '#6e2a1d'],
   landLine: ['#1d6b45', '#6d3a2a', '#5a2216'],
   snow: ['#ffffff', '#ffe6da'],
   cloud: ['#ffffff', '#f6dccd'],
@@ -31,7 +31,7 @@ const PALETTE = {
   iceLine: ['#bfe9ff', '#ffd9c8'],
 };
 // 대륙의 더운 날 색 — 위도 색을 이 색 쪽으로 섞습니다
-const LAND_HOT = '#b8543a';
+const LAND_HOT = '#c0664a';
 
 // 위도에 따른 대륙 색 (y 좌표 → 색). 극 → 툰드라 → 침엽수림 → 온대 초원 → 사막대 → 열대
 const LAND_BANDS = [
@@ -82,7 +82,7 @@ export function earthLook(p) {
   // 바다: 파랑 → 청록 → 붉은 갈색 (파랑과 빨강을 바로 섞으면 보라색이 되어 지구가 탁해 보입니다)
   c.ocean = mix3('#2f9fda', '#146f7d', '#a63d2c', ko);
   c.oceanLight = mix3('#c2f5fc', '#5fb9c4', '#f3b184', ko);
-  c.oceanDeep = mix3('#0a4a86', '#0a3b45', '#5a1a13', ko);
+  c.oceanDeep = mix3('#0a4a86', '#0a3b45', '#6e2a1d', ko);
   // 테두리 빛: 시원한 하늘빛 → 따뜻한 주황 → 빨강 (녹색으로 돌지 않게 단계를 나눕니다)
   c.ring = t < 0.3 ? mixColor('#38bdf8', '#7dd3fc', t / 0.3)
     : t < 0.6 ? mixColor('#7dd3fc', '#f59e0b', (t - 0.3) / 0.3)
@@ -178,8 +178,8 @@ function personArms(state) {
   const st = `stroke="${m.shirt}" stroke-width="2.3" stroke-linecap="round"`;
   if (state === 'stable') {
     return `<path d="M-5-14.4-8.4-19.4" ${st}/><path d="M5-14.4 8.4-19.4" ${st}/>
-      <circle cx="-8.7" cy="-19.9" r="1.5" fill="${m.skin}" stroke="#4a2f1e" stroke-width=".5"/>
-      <circle cx="8.7" cy="-19.9" r="1.5" fill="${m.skin}" stroke="#4a2f1e" stroke-width=".5"/>`;
+      <circle cx="-8.7" cy="-19.9" r="1.25" fill="${m.skin}" stroke="#4a2f1e" stroke-width=".5"/>
+      <circle cx="8.7" cy="-19.9" r="1.25" fill="${m.skin}" stroke="#4a2f1e" stroke-width=".5"/>`;
   }
   if (state === 'warming') {
     return `<path d="M-5-14.2-7.6-10.2" ${st}/><path d="M5-14.2 7.4-16.8" ${st}/>
@@ -227,7 +227,8 @@ const BEAR_EYES = {
   stable: `<path d="M-2.8-13.6q1-1.2 2 0M.8-13.6q1-1.2 2 0" fill="none" stroke="#2d3138" stroke-width=".9" stroke-linecap="round"/>`,
   warming: `<circle cx="-1.8" cy="-13.8" r=".75" fill="#2d3138"/><circle cx="1.8" cy="-13.8" r=".75" fill="#2d3138"/>
     <path d="M-2.6-15.4q.8-.7 1.6-.1M1-15.5q.8-.6 1.6.1" fill="none" stroke="#5a5248" stroke-width=".55" stroke-linecap="round"/>`,
-  crisis: `<path d="M-2.9-14.3l1.9 1.1-1.9 1.1M2.9-14.3l-1.9 1.1 1.9 1.1" fill="none" stroke="#2d3138" stroke-width=".85" stroke-linecap="round"/>`,
+  crisis: `<circle cx="-1.8" cy="-13.4" r=".82" fill="#2d3138"/><circle cx="1.8" cy="-13.4" r=".82" fill="#2d3138"/>
+    <path d="M-3.4-15.6l2.3.7M3.4-15.6l-2.3.7" fill="none" stroke="#5a5248" stroke-width=".7" stroke-linecap="round"/>`,
   boiling: `<path d="M-3.1-14.6l2.2 2.2M-.9-14.6l-2.2 2.2M.9-14.6l2.2 2.2M3.1-14.6l-2.2 2.2" fill="none" stroke="#3a2f2a" stroke-width=".8" stroke-linecap="round"/>`,
 };
 
@@ -273,7 +274,7 @@ function bearArt(state, x, y) {
 }
 
 // ---------- 빙하 ----------
-const waveAt = (x, amp) => (2.5 * Math.sin(x * 0.085 + 0.5) + 1.2 * Math.sin(x * 0.19 + 2.1)) * amp;
+const waveAt = (x, amp) => (3.1 * Math.sin(x * 0.062 + 0.4) + 1.5 * Math.sin(x * 0.155 + 2.1) + 0.8 * Math.sin(x * 0.31 + 4.2)) * amp;
 
 // dir = 1(북극, 위쪽이 얼음) / −1(남극)
 // 빙하 크기: 안정일 때 적당하고, 뜨거워질수록 줄어듭니다 (북극 54 → 39, 남극 186 → 201)
@@ -285,13 +286,13 @@ const iceParams = (t) => {
 function iceShape(edgeY, dir, amp) {
   const top = dir > 0 ? -16 : 256;
   const pts = [];
-  for (let x = 268; x >= -28; x -= 8) pts.push([x, edgeY + waveAt(x, amp)]);
+  for (let x = 268; x >= -28; x -= 6) pts.push([x, edgeY + waveAt(x, amp)]);
   return `M-28 ${top}H268V${pts[0][1].toFixed(1)}L` + pts.map(([x, y]) => `${x} ${y.toFixed(1)}`).join(' ') + 'Z';
 }
 
 function iceArt(c, t, state) {
   const { north, south, amp } = iceParams(t);
-  const lineC = mixColor(c.iceLine, '#ffd9c8', t);
+  const lineC = mixColor('#9ed3ec', '#e0a58c', t);
   const cracks = (dir) => {
     const y0 = dir > 0 ? 32 : 208;
     const out = [];
@@ -301,31 +302,39 @@ function iceArt(c, t, state) {
     }
     return out.join('');
   };
-  const gradTop = north - 14, gradBot = north + 4;
-  const sTop = south - 4, sBot = south + 14;
+  const gradTop = north - 16, gradBot = north + 2;
+  const sTop = south - 2, sBot = south + 16;
   return `<defs>
       <linearGradient id="earth-ice-n" gradientUnits="userSpaceOnUse" x1="0" y1="${gradTop.toFixed(1)}" x2="0" y2="${gradBot.toFixed(1)}">
-        <stop offset="0%" stop-color="${c.snow}" stop-opacity="0.99"/>
-        <stop offset="62%" stop-color="${c.snow}" stop-opacity="0.92"/>
+        <stop offset="0%" stop-color="${c.snow}" stop-opacity="1"/>
+        <stop offset="72%" stop-color="${c.snow}" stop-opacity="0.97"/>
+        <stop offset="88%" stop-color="${c.snow}" stop-opacity="0.8"/>
         <stop offset="100%" stop-color="${c.snow}" stop-opacity="0"/>
       </linearGradient>
       <linearGradient id="earth-ice-s" gradientUnits="userSpaceOnUse" x1="0" y1="${sBot.toFixed(1)}" x2="0" y2="${sTop.toFixed(1)}">
-        <stop offset="0%" stop-color="${c.snow}" stop-opacity="0.99"/>
-        <stop offset="62%" stop-color="${c.snow}" stop-opacity="0.92"/>
+        <stop offset="0%" stop-color="${c.snow}" stop-opacity="1"/>
+        <stop offset="72%" stop-color="${c.snow}" stop-opacity="0.97"/>
+        <stop offset="88%" stop-color="${c.snow}" stop-opacity="0.8"/>
         <stop offset="100%" stop-color="${c.snow}" stop-opacity="0"/>
       </linearGradient>
-      <filter id="earth-ice-soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.2"/></filter>
+      <filter id="earth-ice-soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2"/></filter>
+      <filter id="earth-ice-line" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.1"/></filter>
     </defs>
     <g class="earth-ice">
       <!-- 바다로 번지는 흐릿한 얼음 빛 -->
-      <g filter="url(#earth-ice-soft)" opacity=".85">
+      <g filter="url(#earth-ice-soft)" opacity=".7">
         <path d="${iceShape(north + 5, 1, amp)}" fill="url(#earth-ice-n)"/>
         <path d="${iceShape(south - 5, -1, amp)}" fill="url(#earth-ice-s)"/>
       </g>
       <!-- 단단한 얼음 -->
       <path d="${iceShape(north, 1, amp)}" fill="url(#earth-ice-n)"/>
       <path d="${iceShape(south, -1, amp)}" fill="url(#earth-ice-s)"/>
-      <g opacity=".7">
+      <!-- 얼음 가장자리의 푸른 기운 -->
+      <g filter="url(#earth-ice-line)" opacity=".5">
+        <path d="${iceShape(north, 1, amp)}" fill="none" stroke="#bfe1f2" stroke-width="1.6"/>
+        <path d="${iceShape(south, -1, amp)}" fill="none" stroke="#bfe1f2" stroke-width="1.6"/>
+      </g>
+      <g opacity=".8">
         ${cracks(1)}${cracks(-1)}
       </g>
       <!-- 북극곰이 앉은 작은 얼음 조각 (위기·폭염) -->
@@ -340,7 +349,7 @@ function iceArt(c, t, state) {
 
 // ---------- 대륙 ----------
 function landLatGradient(c, t) {
-  const hot = Math.pow(t, 1.35);
+  const hot = Math.pow(t, 1.45) * 0.86;
   return `<linearGradient id="earth-land" gradientUnits="userSpaceOnUse" x1="0" y1="18" x2="0" y2="224">
       ${LAND_BANDS.map(([y, col]) => `<stop offset="${((y - 18) / 206 * 100).toFixed(1)}%" stop-color="${mixColor(col, LAND_HOT, hot * 0.92)}"/>`).join('\n      ')}
     </linearGradient>`;
