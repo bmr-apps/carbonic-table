@@ -806,6 +806,9 @@ label.check { display: inline-flex; align-items: center; gap: 8px; font-size: 13
 /* 자전하는 대륙·구름은 CSS transform 을 쓰는 순간 별도의 쌓임 맥락이 되어, DOM 뒤에 있는 빙하·조명보다
    위에 그려집니다. 그래서 고정 층(빙하·빛·열기)에도 같은 쌓임 맥락을 주어 DOM 순서대로(빙하 → 빛) 올라오게 합니다. */
 .earth-ice, .earth-overlay { transform: translate(0, 0); }
+
+/* 적열 빛 — 화면(스크린) 혼합으로 바다·대륙을 붉게 태웁니다. (위에 그린 재해 그림은 그대로 선명하게) */
+.earth-heatwash { mix-blend-mode: color; transform: translate(0, 0); }
 .earth-figure-foot { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; justify-content: center; margin-top: 4px; }
 .earth-badge {
   border: 1.5px solid #000; background: var(--surface); color: #000;

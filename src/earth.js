@@ -1,4 +1,8 @@
-// 지구 그림 (v6) — 실제 대륙 · 부드러운 극지방 빙하 · 기후 위기의 원인과 재해
+// 지구 그림 (v7) — 실제 대륙 · 부드러운 극지방 빙하 · 기후 위기의 원인과 재해
+//  · 열기: 온난화 지수가 오르면 누런 황토빛이 아니라 바다·대륙이 진홍(붉은 열기)으로 달아오르고,
+//    가장자리에 붉은 열기 안개와 열기 링이 번집니다.
+//  · 구름: 단계가 오를수록 개수가 늘고(3 → 14개), 잿빛·먹구름이 섞입니다.
+//    구름은 원인·재해 그림 아래에 깔려, 구름이 많아져도 그림이 묻히지 않습니다.
 //  · 대륙: Natural Earth 실제 해안선(src/land-data.js)을 자전 띠(240폭)에 맞춰 그립니다.
 //    위도에 따라 극지→툰드라→숲→사막→열대 순으로 색이 이어져, 한반도·일본·아프리카가 눈에 익은 모양으로 보입니다.
 //  · 빙하: 안정일 때 북극·남극의 얼음이 적당한 크기로 머물고, 바다 쪽 경계는 딱딱한 선 대신
@@ -18,22 +22,35 @@ export const mixColor = (a, b, t) => {
   return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * k).toString(16).padStart(2, '0')).join('');
 };
 
-// 세 색을 이어 섞습니다 (파랑 → 청록 → 붉은색처럼 중간색이 탁해지지 않게)
-const mix3 = (a, b, c, k) => (k < 0.5 ? mixColor(a, b, k * 2) : mixColor(b, c, (k - 0.5) * 2));
-
-// 바다·하늘 색 — 시원한 파랑에서 뜨거운 붉은 갈색으로
-const PALETTE = {
-  oceanLight: ['#c2f5fc', '#5fb9c4', '#f3b184'],
-  ocean: ['#2f9fda', '#146f7d', '#a63d2c'],
-  oceanDeep: ['#0a4a86', '#0a3b45', '#6e2a1d'],
-  landLine: ['#1d6b45', '#6d3a2a', '#5a2216'],
-  snow: ['#ffffff', '#ffe6da'],
-  cloud: ['#ffffff', '#f6dccd'],
-  atmo: ['#9fe6ff', '#ef8655'],
-  iceLine: ['#bfe9ff', '#ffd9c8'],
+// 여러 지점 색을 이어 섞습니다 — 중간색이 탁해지지 않도록 지점을 촘촘히 잡아 씁니다
+const rampMix = (stops, k) => {
+  const x = Math.max(0, Math.min(1, Number(k) || 0));
+  for (let i = 1; i < stops.length; i++) {
+    const [p1, c1] = stops[i];
+    if (x <= p1) {
+      const [p0, c0] = stops[i - 1];
+      return mixColor(c0, c1, (x - p0) / (p1 - p0 || 1));
+    }
+  }
+  return stops[stops.length - 1][1];
 };
-// 대륙의 더운 날 색 — 위도 색을 이 색 쪽으로 섞습니다
-const LAND_HOT = '#c0664a';
+
+// 바다·하늘 색 — 시원한 파랑에서 뜨거운 진홍(열기)으로.
+//  파랑과 빨강을 오래 섞거나 주황을 거치면 누런 회갈색이 되므로, 청록 → 진홍 구간을 짧게 두고
+//  60%를 넘으면 바다가 확실히 붉게 보이도록 지점을 잡았습니다. (마지막은 식어 가는 듯 짙은 진홍)
+const RAMP = {
+  ocean: [[0, '#2f9fda'], [0.28, '#1a8a96'], [0.42, '#16626e'], [0.52, '#c33a2c'], [0.64, '#dc2626'], [0.86, '#e8332a'], [1, '#a01a1c']],
+  oceanLight: [[0, '#c2f5fc'], [0.3, '#7fd0da'], [0.45, '#bb8e80'], [0.62, '#ff7f6a'], [0.85, '#ff6257'], [1, '#c94a42']],
+  oceanDeep: [[0, '#0a4a86'], [0.3, '#0d4a55'], [0.44, '#2a3b45'], [0.56, '#6e1a1c'], [0.8, '#8c1a1a'], [1, '#5c0a0c']],
+  atmo: [[0, '#9fe6ff'], [0.28, '#7dd3fc'], [0.42, '#fca5a5'], [0.56, '#f97362'], [0.72, '#ef4444'], [1, '#b91c1c']],
+  cloud: [[0, '#ffffff'], [0.6, '#f8ded2'], [1, '#eac6ba']],
+  snow: [[0, '#ffffff'], [0.6, '#fff1ea'], [1, '#ffd2c6']],
+  // 테두리 빛: 시원한 하늘빛 → 연한 산호 → 선명한 빨강 (노랑·주황 구간 없이 바로 붉어집니다)
+  ring: [[0, '#38bdf8'], [0.24, '#7dd3fc'], [0.34, '#bae6fd'], [0.44, '#fecaca'], [0.56, '#f87171'], [0.7, '#ef4444'], [0.86, '#dc2626'], [1, '#991b1b']],
+};
+const landLineOf = (t) => mixColor('#1d6b45', '#5e1015', Math.pow(t, 1.05));
+// 대륙의 더운 날 색 — 위도 색을 이 색 쪽으로 섞습니다 (탁한 황토가 아닌 진홍)
+const LAND_HOT = '#8f2a1f';
 
 // 위도에 따른 대륙 색 (y 좌표 → 색). 극 → 툰드라 → 침엽수림 → 온대 초원 → 사막대 → 열대
 const LAND_BANDS = [
@@ -78,17 +95,8 @@ export function earthLook(p) {
   const t = Math.max(0, Math.min(1, Number(p) || 0));
   const ko = Math.pow(t, 1.05);
   const c = {};
-  for (const [k, [a, b2, b]] of Object.entries(PALETTE)) {
-    c[k] = Array.isArray(b2) ? mix3(a, b2, b, ko) : mixColor(a, b2, Math.pow(t, 1.2));
-  }
-  // 바다: 파랑 → 청록 → 붉은 갈색 (파랑과 빨강을 바로 섞으면 보라색이 되어 지구가 탁해 보입니다)
-  c.ocean = mix3('#2f9fda', '#146f7d', '#a63d2c', ko);
-  c.oceanLight = mix3('#c2f5fc', '#5fb9c4', '#f3b184', ko);
-  c.oceanDeep = mix3('#0a4a86', '#0a3b45', '#6e2a1d', ko);
-  // 테두리 빛: 시원한 하늘빛 → 따뜻한 주황 → 빨강 (녹색으로 돌지 않게 단계를 나눕니다)
-  c.ring = t < 0.3 ? mixColor('#38bdf8', '#7dd3fc', t / 0.3)
-    : t < 0.6 ? mixColor('#7dd3fc', '#f59e0b', (t - 0.3) / 0.3)
-      : mixColor('#f59e0b', '#ef4444', (t - 0.6) / 0.4);
+  for (const [k, stops] of Object.entries(RAMP)) c[k] = rampMix(stops, ko);
+  c.landLine = landLineOf(t);
   const state = earthState(t);
   return { ...c, t, state, label: EARTH_STATES[state].label, temp: tempText(t) };
 }
@@ -388,7 +396,7 @@ function iceShape(edgeY, dir, amp) {
 
 function iceArt(c, t) {
   const { north, south, amp } = iceParams(t);
-  const lineC = mixColor('#9ed3ec', '#e0a58c', t);
+  const lineC = mixColor('#9ed3ec', '#ffb59c', t);
   const cracks = (dir) => {
     const y0 = dir > 0 ? 32 : 208;
     const out = [];
@@ -427,8 +435,8 @@ function iceArt(c, t) {
       <path d="${iceShape(south, -1, amp)}" fill="url(#earth-ice-s)"/>
       <!-- 얼음 가장자리의 푸른 기운 -->
       <g filter="url(#earth-ice-line)" opacity=".5">
-        <path d="${iceShape(north, 1, amp)}" fill="none" stroke="#bfe1f2" stroke-width="1.6"/>
-        <path d="${iceShape(south, -1, amp)}" fill="none" stroke="#bfe1f2" stroke-width="1.6"/>
+        <path d="${iceShape(north, 1, amp)}" fill="none" stroke="${mixColor('#bfe1f2', '#ffc0ac', t)}" stroke-width="1.6"/>
+        <path d="${iceShape(south, -1, amp)}" fill="none" stroke="${mixColor('#bfe1f2', '#ffc0ac', t)}" stroke-width="1.6"/>
       </g>
       <g opacity=".8">
         ${cracks(1)}${cracks(-1)}
@@ -438,7 +446,7 @@ function iceArt(c, t) {
 
 // ---------- 대륙 ----------
 function landLatGradient(c, t) {
-  const hot = Math.pow(t, 1.7) * 0.78;
+  const hot = Math.pow(t, 1.6) * 0.86;
   return `<linearGradient id="earth-land" gradientUnits="userSpaceOnUse" x1="0" y1="18" x2="0" y2="224">
       ${LAND_BANDS.map(([y, col]) => `<stop offset="${((y - 18) / 206 * 100).toFixed(1)}%" stop-color="${mixColor(col, LAND_HOT, hot * 0.92)}"/>`).join('\n      ')}
     </linearGradient>`;
@@ -462,16 +470,71 @@ function landArt(c, t) {
         </g>`;
 }
 
+/* ==========================================================================
+   구름 — 단계가 오를수록 개수가 늘고 탁해집니다.
+   안정: 맑은 흰 구름 3~4개 → 주의: 5~6개 → 경고: 잿빛이 섞인 7~8개
+   → 임계점: 짙은 먹구름·스모그 구름까지 11~14개가 화면을 덮습니다.
+   앞쪽(맑은 구름)부터 차례로 등장하므로, 단계가 오르면 "구름이 늘어난다"가 한눈에 보입니다.
+   ========================================================================== */
+const CLOUDS = [
+  // --- 맑은 흰 구름 (처음부터) ---
+  { x: 60, y: 102, s: 1.0, kind: 'clean' },
+  { x: 150, y: 140, s: 1.05, kind: 'clean' },
+  { x: 176, y: 58, s: 0.86, kind: 'clean' },
+  { x: 56, y: 174, s: 0.9, kind: 'clean' },
+  // --- 잿빛 구름 (주의 후반) ---
+  { x: 214, y: 118, s: 0.84, kind: 'grey' },
+  { x: 22, y: 64, s: 0.78, kind: 'grey' },
+  { x: 104, y: 74, s: 0.94, kind: 'grey' },
+  { x: 182, y: 196, s: 0.96, kind: 'grey' },
+  // --- 짙은 먹구름 · 스모그 (경고 후반~임계점) ---
+  { x: 86, y: 150, s: 1.12, kind: 'smog' },
+  { x: 160, y: 96, s: 1.2, kind: 'smog' },
+  { x: 34, y: 190, s: 1.0, kind: 'smog' },
+  { x: 208, y: 152, s: 1.08, kind: 'smog' },
+  { x: 120, y: 46, s: 1.04, kind: 'smog' },
+  { x: 8, y: 132, s: 1.0, kind: 'smog' },
+  { x: 132, y: 168, s: 1.16, kind: 'smog' },
+  { x: 66, y: 108, s: 1.06, kind: 'smog' },
+  { x: 228, y: 86, s: 0.96, kind: 'smog' },
+];
+
+const cloudCount = (t) => Math.round(
+  t < 0.05 ? 3
+    : t < 0.35 ? 3 + ((t - 0.05) / 0.3) * 3        // 3 → 6
+      : t < 0.7 ? 6 + ((t - 0.35) / 0.35) * 3      // 6 → 9
+        : 11 + ((t - 0.7) / 0.3) * 3,              // 11 → 14
+);
+
+// 구름 빛 — 맑은 구름은 희게, 잿빛·먹구름은 단계가 오를수록 어두워집니다
+const cloudTone = (kind, t) => {
+  if (kind === 'clean') return mixColor('#ffffff', '#ffe6d8', Math.pow(t, 1.5));
+  if (kind === 'grey') return mixColor('#c6cfdb', '#6f7b8a', Math.pow(t, 0.9));
+  return mixColor('#9aa6b5', '#2b3442', Math.pow(t, 0.7));
+};
+const cloudOpacity = (kind, t) => (kind === 'clean' ? 0.72 - 0.3 * t : kind === 'grey' ? 0.66 : 0.7 + 0.02 * t);
+
+// 구름 하나 — 작은 원 세 개와 납작한 밑면. 먹구름은 아래쪽에 어두운 배를 깝니다.
+const cloudOne = (cx, cy, s, fill, op, belly) => {
+  const shape = (f, dy) => `<circle cx="${(cx - 10 * s).toFixed(1)}" cy="${(cy + dy).toFixed(1)}" r="${(6.4 * s).toFixed(1)}" fill="${f}"/>`
+    + `<circle cx="${cx.toFixed(1)}" cy="${(cy - 3.6 * s + dy).toFixed(1)}" r="${(8.6 * s).toFixed(1)}" fill="${f}"/>`
+    + `<circle cx="${(cx + 10 * s).toFixed(1)}" cy="${(cy + dy).toFixed(1)}" r="${(6.8 * s).toFixed(1)}" fill="${f}"/>`
+    + `<rect x="${(cx - 12.8 * s).toFixed(1)}" y="${(cy + dy).toFixed(1)}" width="${(25.6 * s).toFixed(1)}" height="${(6.6 * s).toFixed(1)}" rx="${(3.3 * s).toFixed(1)}" fill="${f}"/>`;
+  const shade = belly
+    ? `<rect x="${(cx - 12.8 * s).toFixed(1)}" y="${(cy + 3.3 * s).toFixed(1)}" width="${(25.6 * s).toFixed(1)}" height="${(3.3 * s).toFixed(1)}" rx="${(1.6 * s).toFixed(1)}" fill="${belly}"/>`
+    : '';
+  return `<g opacity="${op}">${shape(fill, 0)}${shade}</g>`;
+};
+
 // 구름 한 벌 — 대륙과 다른 속도로 흐릅니다
-function cloudArt(c, op) {
-  return `<g fill="${c.cloud}" opacity="${op}">
-          <g><circle cx="60" cy="104" r="7"/><circle cx="70" cy="100" r="9.5"/><circle cx="81" cy="105" r="7"/><rect x="56" y="104" width="29" height="7" rx="3.5"/></g>
-          <g><circle cx="146" cy="140" r="8"/><circle cx="157" cy="136" r="10"/><circle cx="168" cy="141" r="7.5"/><rect x="142" y="140" width="30" height="8" rx="4"/></g>
-          <g><circle cx="58" cy="172" r="6"/><circle cx="66" cy="169" r="8"/><circle cx="75" cy="173" r="6"/><rect x="55" y="172" width="24" height="6.5" rx="3"/></g>
-          <g><circle cx="174" cy="58" r="5.5"/><circle cx="181" cy="55" r="7"/><circle cx="189" cy="59" r="5"/><rect x="171" y="58" width="21" height="5.5" rx="2.6"/></g>
-          <g><circle cx="216" cy="118" r="5"/><circle cx="222" cy="115" r="6.5"/><circle cx="229" cy="119" r="4.6"/><rect x="213" y="118" width="19" height="5" rx="2.4"/></g>
-          <g><circle cx="22" cy="64" r="4.6"/><circle cx="28" cy="61.5" r="6"/><circle cx="34" cy="65" r="4.2"/><rect x="19" y="64" width="17" height="4.6" rx="2.2"/></g>
-        </g>`;
+function cloudArt(c, t) {
+  const n = Math.min(CLOUDS.length, cloudCount(t));
+  const out = CLOUDS.slice(0, n).map(({ x, y, s, kind }) => {
+    const fill = cloudTone(kind, t);
+    const belly = kind === 'clean' ? '' : mixColor(fill, '#1f2937', 0.35);
+    return cloudOne(x, y, s, fill, cloudOpacity(kind, t), belly);
+  }).join('');
+  return out;
 }
 
 const band = (inner) => `<g>${inner}</g>\n        <g transform="translate(${ART_W} 0)">${inner}</g>`;
@@ -492,12 +555,12 @@ export function earthSvg(p) {
   const c = earthLook(t);
   const state = c.state;
   const pct = Math.round(t * 100);
-  const hazeOp = (0.015 + 0.3 * Math.pow(t, 1.8)).toFixed(3);
+  const hazeOp = (0.02 + 0.62 * Math.pow(t, 1.6)).toFixed(3);
+  const washOp = Math.min(0.7, Math.pow(Math.max(0, (t - 0.32) / 0.68), 1.15) * 0.95).toFixed(3);
   const ringW = (1.5 + t * 5.5).toFixed(1);
   const ringOp = (0.14 + t * 0.5).toFixed(2);
-  const heatOp = (t * 0.5).toFixed(2);
+  const heatOp = (Math.pow(t, 0.85) * 0.75).toFixed(2);
   const heatW = (4 + t * 12).toFixed(1);
-  const cloudOp = (0.8 - t * 0.44).toFixed(2);
   const sparkOp = (0.85 - t * 0.55).toFixed(2);
   const sunOp = (0.26 - t * 0.16).toFixed(2);
 
@@ -512,6 +575,18 @@ export function earthSvg(p) {
         <stop offset="70%" stop-color="${c.atmo}" stop-opacity="0"/>
         <stop offset="88%" stop-color="${c.atmo}" stop-opacity="0.5"/>
         <stop offset="100%" stop-color="${c.atmo}" stop-opacity="0"/>
+      </radialGradient>
+      <!-- 열기 안개 — 가운데는 맑게 두고 가장자리만 붉게 달구어, 위에 그린 발전소·재해 그림이 묻히지 않게 합니다 -->
+      <radialGradient id="earth-haze" cx="50%" cy="50%" r="50%">
+        <stop offset="30%" stop-color="${c.atmo}" stop-opacity="0"/>
+        <stop offset="72%" stop-color="${c.atmo}" stop-opacity="0.35"/>
+        <stop offset="100%" stop-color="${c.atmo}" stop-opacity="0.92"/>
+      </radialGradient>
+      <!-- 적열(붉게 달아오름) — 지구 전체를 붉은 빛으로 태웁니다 -->
+      <radialGradient id="earth-heat" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#ef4444" stop-opacity="0.85"/>
+        <stop offset="58%" stop-color="#dc2626" stop-opacity="0.95"/>
+        <stop offset="100%" stop-color="#991b1b" stop-opacity="1"/>
       </radialGradient>
       <linearGradient id="earth-sun" x1="0" y1="0" x2="0.8" y2="1">
         <stop offset="0%" stop-color="#ffffff" stop-opacity="0.28"/>
@@ -533,25 +608,36 @@ export function earthSvg(p) {
     <circle cx="120" cy="120" r="92" fill="url(#earth-ocean)" stroke="#000" stroke-width="3"/>
 
     <g clip-path="url(#earth-clip)">
-      <!-- 대륙 · 원인 · 재해 · 바다 폐사 (자전) -->
-      <g class="earth-spin earth-spin-land">
-        ${band(landArt(c, t) + impactArt(t))}
-      </g>
+      <!-- 바다 — 적열 빛이 바다까지 닿도록 클립 안에 한 번 더 깝니다 -->
+      <circle cx="120" cy="120" r="92" fill="url(#earth-ocean)"/>
 
-      <!-- 구름 (자전 · 대륙과 다른 속도) -->
-      <g class="earth-spin earth-spin-clouds">
-        ${band(cloudArt(c, cloudOp))}
+      <!-- 대륙 (자전) -->
+      <g class="earth-spin earth-spin-land">
+        ${band(landArt(c, t))}
       </g>
 
       ${iceArt(c, t)}
+
+      <!-- 적열 빛 (대륙·바다를 붉게 달굽니다) -->
+      <circle class="earth-heatwash" cx="120" cy="120" r="92" fill="url(#earth-heat)" opacity="${washOp}"/>
+
+      <!-- 구름 (자전 · 대륙과 다른 속도) -->
+      <g class="earth-spin earth-spin-clouds">
+        ${band(cloudArt(c, t))}
+      </g>
+
+      <!-- 원인·재해·바다 폐사 — 구름 위에 그려 구름이 늘어도 그림이 묻히지 않습니다 (대륙과 같은 속도) -->
+      <g class="earth-spin earth-spin-land">
+        ${band(impactArt(t))}
+      </g>
 
       <!-- 고정 조명 — 자전해도 빛은 늘 같은 자리에서 들어옵니다 -->
       <g class="earth-overlay">
         <ellipse cx="80" cy="52" rx="76" ry="52" fill="url(#earth-sun)"/>
         <path d="M36 108a92 92 0 0 1 34-58" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round" opacity="${sunOp}"/>
 
-        <!-- 열기 안개 (기후 위기가 깊어질수록 짙어짐) -->
-        <circle cx="120" cy="120" r="92" fill="${c.atmo}" opacity="${hazeOp}"/>
+        <!-- 열기 안개 (기후 위기가 깊어질수록 가장자리가 붉게 달아오름) -->
+        <circle cx="120" cy="120" r="92" fill="url(#earth-haze)" opacity="${hazeOp}"/>
       </g>
     </g>
 
