@@ -6,6 +6,7 @@
 <title>탄소로운 식탁 · BMR APPS</title>
 <meta name="description" content="탄소로운 식탁 — 별무리 사람들이 기후 실천으로 모은 공기를 기록하고, 그 공기로 물건을 나누는 플리마켓.">
 <meta name="theme-color" content="#0f3d2e">
+<meta name="color-scheme" content="light dark">
 <meta name="robots" content="noindex">
 <link rel="icon" href="https://psupfmarnyxontorftio.supabase.co/functions/v1/hub-favicon?slug=carbonic-table">
 </head>
@@ -32,6 +33,7 @@
   <nav class="nav" id="nav" aria-label="화면 고르기">
     <button type="button" class="nav-item on" data-nav="home" aria-current="page">현황</button>
     <button type="button" class="nav-item" data-nav="practices">실천</button>
+    <button type="button" class="nav-item" data-nav="mine">내 기록</button>
     <button type="button" class="nav-item" data-nav="ranking">랭킹</button>
     <button type="button" class="nav-item" data-nav="auctions">경매</button>
     <button type="button" class="nav-item" data-nav="admin" aria-label="관리자" hidden><span aria-hidden="true">🛠️</span> 관리</button>
@@ -91,6 +93,14 @@
     </div>
     <button type="button" class="btn tiny danger" data-action="delete-profile">회원 정보 지우기 (기록이 없을 때만)</button>
   </form>
+</dialog>
+
+<dialog class="modal image-modal" id="image-dialog" aria-labelledby="image-dialog-title">
+  <h2 id="image-dialog-title" class="sr-only">사진 크게 보기</h2>
+  <img id="image-dialog-img" alt="크게 본 사진">
+  <div class="modal-actions">
+    <button type="button" class="btn ghost" data-action="close-dialog">닫기</button>
+  </div>
 </dialog>
 
 <dialog class="modal modal-sm" id="confirm-dialog" aria-labelledby="confirm-title">

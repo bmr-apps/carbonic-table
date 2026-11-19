@@ -1,10 +1,11 @@
-// 탄소로운 식탁 · 화면 코드 (v2 — 공지 · 시즌 · 랭킹 · 반응/댓글 · 경매 대기 · 관리자)
+// 탄소로운 식탁 · 화면 코드 (v3 — 지구 탄소·공기 · 내 실천 모아보기 · 여러 건 등록 · 사진)
 // 구조: 서버 함수(/state)에서 한 벌을 받아 그리고, 모든 쓰기는 서버 함수로만 보냅니다.
 import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
 import './style.css';
 import { applyAppInfo } from './app-info.js';
 import { loginWithGoogle, logout, onUserChange } from './auth.js';
 import { local } from './store.js';
+import { FN_URL } from './supabase.js';
 import { api, ApiError } from './api.js';
 
 // ---------- 작은 도우미 ----------
@@ -41,6 +42,11 @@ const short = (s, n) => {
 const wcls = (p) => 'w' + Math.min(100, Math.max(0, Math.round((Number(p) || 0) / 5) * 5));
 const kindBadge = (kind) => (KIND_CLASS[kind] ? `<span class="badge ${KIND_CLASS[kind]}">${esc(kind)}</span>` : '');
 const seedBadge = (n) => (n >= 1 ? `<span class="badge soft">${n}공기</span>` : '<span class="badge soft">0공기</span>');
+const photoHtml = (path, alt, cls = '') => {
+  const src = imgSrc(path);
+  if (!src) return '';
+  return `<button type="button" class="photo ${cls}" data-action="zoom" data-src="${esc(src)}" aria-label="사진 크게 보기"><img src="${esc(src)}" alt="${esc(alt)}" loading="lazy"></button>`;
+};
 
 // ---------- 인라인 SVG (외부 아이콘·CDN 없이 그린다) ----------
 const svg = (body, cls = 'ico') =>
@@ -65,25 +71,81 @@ function icon(name, cls = 'ico') {
   return s ? s.replace('class="ico"', `class="${cls}"`) : '';
 }
 
-// ---------- 공기 정원(성장 단계) ----------
-const STAGES = [
-  { at: 0, name: '씨앗', icon: 'seed' },
-  { at: 10, name: '새싹', icon: 'sprout' },
-  { at: 50, name: '어린나무', icon: 'tree' },
-  { at: 100, name: '큰나무', icon: 'tree' },
-  { at: 300, name: '작은 숲', icon: 'globe' },
-];
-function growthOf(air) {
-  const a = Number(air) || 0;
-  let cur = STAGES[0];
-  let next = STAGES[1];
-  for (let i = 0; i < STAGES.length; i += 1) {
-    if (a >= STAGES[i].at) { cur = STAGES[i]; next = STAGES[i + 1] || null; }
-  }
-  const span = next ? next.at - cur.at : 1;
-  const pctToNext = next ? Math.min(100, Math.max(0, ((a - cur.at) / span) * 100)) : 100;
-  return { cur, next, pctToNext, trees: Math.round((a / 100) * 10) / 10 };
+// ---------- 지구(탄소·공기) ----------
+// 탄소는 시즌의 기준 시각부터 한 시간마다 쌓이고, 공기가 쌓이면 그만큼 지구가 맑아져요.
+const hexOf = (h) => {
+  const s = String(h).replace('#', '');
+  return [0, 2, 4].map((i) => parseInt(s.slice(i, i + 2), 16));
+};
+const mixColor = (a, b, t) => {
+  const A = hexOf(a), B = hexOf(b), k = Math.max(0, Math.min(1, Number(t) || 0));
+  return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * k).toString(16).padStart(2, '0')).join('');
+};
+function earthLook(p) {
+  const t = Math.max(0, Math.min(1, Number(p) || 0));
+  return {
+    ocean: mixColor('#2f8fd0', '#a3352a', t),
+    oceanLight: mixColor('#7cc7ee', '#f2a06a', t),
+    land: mixColor('#3f9e63', '#e0563c', t),
+    haze: mixColor('#eaf4ff', '#8a1f12', t * 0.92),
+    ring: mixColor('#38bdf8', '#ef4444', t),
+    label: t < 0.02 ? '맑음' : t < 0.34 ? '조금 흐림' : t < 0.67 ? '뿜옥게 덮임' : '붉게 달아오름',
+  };
 }
+function earthSvg(p) {
+  const t = Math.max(0, Math.min(1, Number(p) || 0));
+  const c = earthLook(t);
+  const hazeOp = (0.05 + t * 0.52).toFixed(2);
+  const ringW = (1.5 + t * 7).toFixed(1);
+  const ringOp = (0.12 + t * 0.6).toFixed(2);
+  return `<svg class="earth-svg" viewBox="0 0 240 240" role="img" aria-label="지구 오염도 ${Math.round(t * 100)}%">
+    <defs>
+      <radialGradient id="earth-ocean" cx="34%" cy="28%" r="80%">
+        <stop offset="0%" stop-color="${c.oceanLight}"/>
+        <stop offset="62%" stop-color="${c.ocean}"/>
+        <stop offset="100%" stop-color="${mixColor(c.ocean, '#001018', 0.4)}"/>
+      </radialGradient>
+      <clipPath id="earth-clip"><circle cx="120" cy="120" r="92"/></clipPath>
+    </defs>
+    <circle cx="120" cy="120" r="92" fill="url(#earth-ocean)" stroke="#000" stroke-width="3"/>
+    <g clip-path="url(#earth-clip)">
+      <path d="M68 70c14-12 36-8 42 4 5 10-5 18-17 20-10 2-16 11-27 7-11-4-8-23 2-31z" fill="${c.land}" stroke="#000" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M95 130c12-6 27-2 31 8 4 10-2 19-10 27-8 8-19 6-23-4-4-9-7-25 2-31z" fill="${c.land}" stroke="#000" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M150 92c11-4 23 0 25 8 2 9-8 15-17 13-8-2-14-15-8-21z" fill="${c.land}" stroke="#000" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M148 152c8-4 18 0 18 8 0 7-8 12-16 9-7-3-6-14-2-17z" fill="${c.land}" stroke="#000" stroke-width="1.6" stroke-linejoin="round"/>
+      <circle cx="120" cy="120" r="92" fill="${c.haze}" opacity="${hazeOp}"/>
+    </g>
+    <circle cx="120" cy="120" r="99" fill="none" stroke="${c.ring}" stroke-width="${ringW}" opacity="${ringOp}"/>
+    <circle cx="120" cy="120" r="92" fill="none" stroke="#000" stroke-width="3"/>
+  </svg>`;
+}
+
+let serverOffset = 0;   // 서버 시각 − 브라우저 시각 (밀리초)
+function liveEarth() {
+  const s = seasonOf();
+  const base = s?.earth || state.data?.earth;
+  if (!base) return null;
+  const started = Date.parse(base.earth_started_at || '');
+  const air = Number(s?.air ?? base.air ?? 0);
+  const cph = Math.max(0, Number(base.carbon_per_hour ?? 1));
+  const cap = Math.max(0.1, Number(base.carbon_capacity ?? 24));
+  const elapsed = Number.isFinite(started) ? Math.max(0, Math.floor((Date.now() + serverOffset - started) / 1000)) : 0;
+  const hours = Math.floor(elapsed / 3600);
+  const emitted = Math.round(hours * cph * 10) / 10;
+  const net = Math.round((emitted - air) * 10) / 10;
+  const pollution = Math.max(0, Math.min(1, net / cap));
+  const stateName = pollution < 0.02 ? 'clean' : pollution < 0.34 ? 'watch' : pollution < 0.67 ? 'smog' : 'critical';
+  return {
+    carbon_per_hour: cph, carbon_capacity: cap, earth_started_at: base.earth_started_at,
+    elapsed_seconds: elapsed, next_carbon_in: 3600 - (elapsed % 3600),
+    emitted, air, net, pollution, state: stateName,
+  };
+}
+const imgSrc = (path) => {
+  const v = String(path || '');
+  if (!v) return '';
+  return v.startsWith('/images/') ? FN_URL + v : v;
+};
 
 const emptyData = () => ({
   server_time: null,
@@ -104,7 +166,9 @@ const state = {
   seasonId: null,          // null = 지금 시즌
   missionQuery: '',
   airFilter: 'all',
-  picked: null,
+  cart: {},                // { [missionId]: 수량 } — 여러 미션·같은 미션 여러 번
+  images: { activity: null, notice: null, lot: null },  // { dataUrl } | { path } | null
+  mineFilter: 'all',       // all | photo | mission:<이름>
   day: todayStr(),
   memberQuery: '',
   memberSort: 'earned',
@@ -169,6 +233,8 @@ async function load({ quiet = false } = {}) {
   if (!quiet) { state.loading = true; render(); }
   try {
     state.data = await api.state(state.seasonId);
+    const st = Date.parse(state.data?.server_time || '');
+    if (Number.isFinite(st)) serverOffset = st - Date.now();
     state.error = null;
     // 서버가 고른 시즌(없으면 지금 시즌)에 맞춘다
     if (state.data?.season?.id && state.seasonId && state.data.season.id !== state.seasonId) state.seasonId = state.data.season.id;
@@ -206,10 +272,11 @@ function render() {
     return;
   }
   main.innerHTML = state.view === 'practices' ? practicesView()
-    : state.view === 'auctions' ? auctionsView()
-      : state.view === 'ranking' ? rankingView()
-        : state.view === 'admin' ? adminView()
-          : homeView();
+    : state.view === 'mine' ? mineView()
+      : state.view === 'auctions' ? auctionsView()
+        : state.view === 'ranking' ? rankingView()
+          : state.view === 'admin' ? adminView()
+            : homeView();
 }
 
 function renderHeader() {
@@ -304,6 +371,7 @@ function noticeCard(n) {
       <span class="notice-when">${fmtWhen(n.created_at)} · ${esc(n.author_name || '관리자')}</span>
     </header>
     ${n.body ? `<p class="notice-body">${esc(n.body)}</p>` : ''}
+    ${photoHtml(n.image_url, `${n.title} 사진`, 'notice-photo')}
   </article>`;
 }
 
@@ -317,7 +385,6 @@ function homeView() {
   const activityCount = data.summary.activity_count || 0;
   const maxKind = Math.max(1, ...data.by_kind.map((k) => k.air || 0));
   const season = seasonOf();
-  const g = growthOf(total);
 
   return `<div class="wrap">
     <section class="hero" aria-labelledby="hero-title">
@@ -345,32 +412,18 @@ function homeView() {
       </div>
     </section>
 
-    <section class="eco-band" aria-label="공기 정원과 나무 환산">
-      <div class="eco-card grow">
-        <div class="eco-head">
-          <span class="eco-ico">${icon(g.cur.icon, 'ico big')}</span>
-          <div>
-            <small>이번 시즌 공기 정원</small>
-            <b>${esc(g.cur.name)} 단계</b>
-          </div>
-          <span class="badge green">${nf(total)}공기</span>
-        </div>
-        <div class="bar eco-bar" role="img" aria-label="다음 단계까지 ${g.pctToNext}%">
-          <i class="${wcls(g.pctToNext)}"></i>
-        </div>
-        <p class="hint">${g.next ? `다음 <b>${esc(g.next.name)}</b>까지 <b>${nf(Math.max(0, g.next.at - total))}공기</b> 남았어요.` : '작은 숲을 이루었어요! 🎉'}</p>
-      </div>
-      <div class="eco-card trees">
-        <div class="eco-head">
-          <span class="eco-ico">${icon('tree', 'ico big')}</span>
-          <div>
-            <small>나무 환산</small>
-            <b>${nf(g.trees)}그루</b>
-          </div>
-        </div>
-        <div class="tree-row" aria-hidden="true">${treeRow(total)}</div>
-        <p class="hint">이야기용 환산이에요 — 공기 100을 나무 한 그루로 봐요.</p>
-      </div>
+    <section class="earth-band" aria-labelledby="earth-title">
+      ${earthCardHtml()}
+      <aside class="earth-side">
+        <h2 id="earth-title">${icon('globe', 'ico lg')} 지구는 지금</h2>
+        <p>한 시간마다 탄소 <b>${nf(season?.earth?.carbon_per_hour ?? 1)}개</b>씩 쌓여요. 우리가 모은 <b>공기 1개</b>가 사라질 탄소 1개를 막아 지구를 맑게 되돌려요.</p>
+        <ul class="earth-steps">
+          <li class="s-clean"><span></span>맑음 — 공기가 탄소보다 많아요</li>
+          <li class="s-watch"><span></span>조금 흐림 — 탄소가 슬슬 쌓여요</li>
+          <li class="s-smog"><span></span>뿌옇게 덮임 — 공기가 더 필요해요</li>
+          <li class="s-critical"><span></span>붉게 달아오름 — 지구가 한계예요</li>
+        </ul>
+      </aside>
     </section>
 
     <section class="kind-grid" aria-label="학년·구분별 합계">
@@ -422,11 +475,41 @@ function homeView() {
   </div>`;
 }
 
-function treeRow(air) {
-  const trees = Math.min(8, Math.floor((Number(air) || 0) / 100));
-  if (!trees) return `<span class="sapling">${icon('sprout', 'ico big')}</span><span class="hint">아직 새싹 — 100공기를 모으면 나무 한 그루!</span>`;
-  return Array.from({ length: trees }).map(() => `<span class="tree">${icon('tree', 'ico')}</span>`).join('')
-    + (trees === 8 ? '<span class="hint">8그루+</span>' : '');
+function earthCardHtml() {
+  const e = liveEarth();
+  if (!e) return `<article class="earth-card empty-earth" id="earth-card"><p class="hint">시즌이 시작되면 지구가 나타나요.</p></article>`;
+  const p = e.pollution;
+  const look = earthLook(p);
+  const netTxt = e.net > 0 ? `+${nf(e.net)}` : e.net < 0 ? `−${nf(Math.abs(e.net))}` : '0';
+  const nextMin = Math.max(0, Math.ceil(e.next_carbon_in / 60));
+  const pct = Math.round(p * 100);
+  return `<article class="earth-card ${e.state}" id="earth-card">
+    <div class="earth-figure">
+      ${earthSvg(p)}
+      <span class="earth-badge ${e.state}">${esc(look.label)}</span>
+    </div>
+    <div class="earth-data">
+      <div class="earth-head">
+        <span class="eyebrow">🌍 이번 시즌 지구</span>
+        <b>${esc(seasonOf()?.name || '')}</b>
+        <span class="earth-pct">오염도 ${pct}%</span>
+      </div>
+      <div class="earth-stats">
+        <div class="earth-stat"><small>지금까지 발생한 탄소</small><b>${nf(e.emitted)}<span class="u">개</span></b></div>
+        <div class="earth-stat"><small>우리가 모은 공기</small><b>${nf(e.air)}<span class="u">개</span></b></div>
+        <div class="earth-stat ${e.net > 0 ? 'hot' : 'cool'}"><small>아직 남은 탄소 (순탄소)</small><b>${netTxt}<span class="u">개</span></b></div>
+      </div>
+      <div class="bar earth-bar" role="img" aria-label="지구 오염도 ${pct}%"><i class="${wcls(pct)}"></i></div>
+      <p class="earth-note">${e.net > 0
+        ? `탄소 <b>${nf(e.net)}개</b>가 지구를 붉게 물들였어요. 공기를 <b>${nf(e.net)}개</b> 더 모으면 다시 맑아져요.`
+        : `모은 공기가 발생한 탄소보다 <b>${nf(Math.abs(e.net))}개</b> 많아 지구가 맑아요.`}</p>
+      <div class="earth-foot">
+        <span>1시간마다 탄소 <b>${nf(e.carbon_per_hour)}개</b></span>
+        <span>다음 탄소까지 <b>${nextMin}분</b></span>
+        <span class="earth-foot-wide">지구가 완전히 붉어지는 순탄소 ${nf(e.carbon_capacity)}개</span>
+      </div>
+    </div>
+  </article>`;
 }
 
 function ledgerCard(me) {
@@ -444,7 +527,6 @@ function ledgerCard(me) {
         <button type="button" class="btn primary" data-action="open-profile">회원 정보 등록하기</button>
       </div>`;
   }
-  const g = growthOf(me.earned);
   return `<div class="card-head"><h2>${esc(me.name)}님의 통장</h2><span class="badge ${KIND_CLASS[me.kind] || ''}">${esc(me.kind)}</span>
       ${me.is_admin ? '<span class="badge green">관리자</span>' : ''}
       <div class="right"><button type="button" class="btn sm ghost" data-action="open-profile">정보 수정</button></div></div>
@@ -455,8 +537,8 @@ function ledgerCard(me) {
       <div class="tile hot"><small>남은 공기</small><b>${nf(me.available)}<span class="u">공기</span></b></div>
     </div>
     <div class="ledger-grow">
-      <span class="eco-ico">${icon(g.cur.icon, 'ico')}</span>
-      <span class="grow-txt"><b>${esc(g.cur.name)}</b> · 실천 ${nf(me.acts)}회</span>
+      <span class="eco-ico">${icon('globe', 'ico')}</span>
+      <span class="grow-txt">지구에 보탠 공기 <b>${nf(me.earned)}개</b> · 실천 ${nf(me.acts)}회</span>
       <span class="badge green">${me.rank ? `${nf(me.rank)}위 (${nf(d().members.length)}명)` : ''}</span>
     </div>
     <p class="ledger-note">지금 <b>${nf(me.available)}공기</b>로 입찰할 수 있어요.</p>
@@ -555,6 +637,7 @@ function feedItem(a) {
       <span class="what">${esc(a.mission)}</span>
       <span class="when">${fmtDay(a.done_on)} 실천 · ${fmtTime(a.created_at)} 등록</span>
     </div>
+    ${a.image_url ? photoHtml(a.image_url, `${a.mission} 사진`, 'feed-photo') : ''}
     <div class="feed-acts">
       ${(a.reactions || []).map((r) => `
         <button type="button" class="react ${r.mine ? 'on' : ''}" data-action="react" data-id="${esc(a.id)}" data-emoji="${r.emoji}"
@@ -610,10 +693,12 @@ function practicesView() {
     </section></div>`;
   }
 
-  const picked = d().missions.find((m) => m.id === state.picked) || null;
-  const mine = d().activities.filter((a) => a.user_id === me.user_id);
   const season = seasonOf();
-  const g = growthOf(me.earned);
+  const mine = d().mine || { count: 0, air: 0, activities: [] };
+  const cart = cartItems();
+  const air = cart.reduce((n, c) => n + c.mission.air * c.count, 0);
+  const count = cart.reduce((n, c) => n + c.count, 0);
+  const recent = mine.activities.slice(0, 6);
 
   return `<div class="wrap">
     <div class="section-head">
@@ -622,11 +707,14 @@ function practicesView() {
     </div>
     <div class="season-note">
       <span>${icon('leaf', 'ico sm')} <b>${esc(season?.name || '이번 시즌')}</b>에 기록돼요.</span>
-      <span class="hint">${esc(g.cur.name)} 단계 · 실천 ${nf(me.acts)}회 · 이번 시즌 적립 ${nf(me.earned)}공기</span>
+      <span class="hint">이번 시즌 적립 ${nf(me.earned)}공기 · 실천 ${nf(me.acts)}회</span>
     </div>
     <div class="picker">
       <section class="card mission-panel" aria-labelledby="missions-label">
-        <div class="card-head"><h2 id="missions-label">미션 고르기</h2><span class="badge soft">${nf(d().missions.length)}개</span></div>
+        <div class="card-head"><h2 id="missions-label">미션 고르기</h2><span class="badge soft">${nf(d().missions.length)}개</span>
+          <div class="right"><button type="button" class="btn tiny ghost" data-action="cart-clear" ${count ? '' : 'disabled'}>고른 것 비우기</button></div>
+        </div>
+        <p class="hint mb10">미션을 누르면 하나씩 담겨요. 여러 미션을 한꺼번에, 같은 미션도 여러 번(＋) 골라 한 번에 기록할 수 있어요.</p>
         <input type="search" id="mission-search" placeholder="미션 찾기 (예: 분리수거, 텀블러)" value="${esc(state.missionQuery)}" aria-label="미션 찾기">
         <div class="chips" role="group" aria-label="공기별 보기">
           ${[['all', '전체'], ['1', '1공기'], ['2', '2공기'], ['3', '3공기'], ['other', '그 외']].map(([key, label]) =>
@@ -635,26 +723,34 @@ function practicesView() {
         <div class="mission-list" id="mission-list">${missionListHtml()}</div>
       </section>
 
-      <section class="pick-sticky" aria-label="선택한 실천">
+      <section class="pick-sticky" aria-label="고른 실천">
         <div class="pick-box">
-          <div class="label">고른 미션</div>
-          <div class="picked" id="picked-name">${picked ? esc(picked.name) : '아래에서 미션을 골라 주세요'}</div>
-          <div class="reward"><b>+${picked ? nf(picked.air) : 0}</b><small>공기</small></div>
+          <div class="label">고른 실천 <span id="cart-count">${nf(count)}</span>건</div>
+          <div class="picked" id="picked-name">${count
+            ? cart.map((c) => `${esc(c.mission.name)} × ${nf(c.count)}`).join('<br>')
+            : '왼쪽에서 미션을 골라 주세요'}</div>
+          <div class="reward"><b id="cart-air">+${nf(air)}</b><small>공기</small></div>
           <form class="pick-form" data-action="activity">
             <label class="field"><span>실천한 날</span>
               <input type="date" name="day" value="${esc(state.day)}" max="${todayStr()}" required>
             </label>
-            <button type="submit" class="btn primary wide" ${picked ? '' : 'disabled'}>${picked ? `${nf(picked.air)}공기 적립하기` : '미션을 골라 주세요'}</button>
+            <div id="image-field-activity">${imageFieldHtml('activity', '사진')}</div>
+            <button type="submit" class="btn primary wide" ${count ? '' : 'disabled'} id="cart-submit">${count ? `${nf(air)}공기 적립하기` : '미션을 골라 주세요'}</button>
           </form>
-          <p class="hint pick-hint">오늘 한 실천을 골라 기록하면 바로 통장에 들어가요.</p>
+          <p class="hint pick-hint">기록하면 바로 통장에 들어가고, 그만큼 지구가 맑아져요.</p>
         </div>
       </section>
     </div>
 
     <section class="section" aria-labelledby="mine-title">
-      <div class="section-head"><h2 id="mine-title">내가 등록한 실천</h2><span class="eyebrow">${nf(mine.length)}건</span></div>
-      ${mine.length ? `<ul class="my-list">${mine.map((a) => `
+      <div class="section-head">
+        <h2 id="mine-title">내가 등록한 실천</h2>
+        <span class="eyebrow">${nf(mine.count)}건 · ${nf(mine.air)}공기</span>
+        <button type="button" class="btn sm ghost" data-action="go" data-view="mine">내 실천 모아보기 →</button>
+      </div>
+      ${recent.length ? `<ul class="my-list">${recent.map((a) => `
         <li>
+          ${a.image_url ? `<img class="my-thumb" src="${esc(imgSrc(a.image_url))}" alt="">` : '<span class="my-thumb none" aria-hidden="true">📷</span>'}
           <span class="m-name">${esc(a.mission)}</span>
           <span class="m-air">+${nf(a.air)}</span>
           <span class="m-day">${fmtDay(a.done_on)}</span>
@@ -662,6 +758,13 @@ function practicesView() {
         </li>`).join('')}</ul>` : `<div class="empty"><b>아직 내가 등록한 실천이 없어요.</b>위에서 미션을 골라 첫 공기를 적립해 보세요.</div>`}
     </section>
   </div>`;
+}
+
+/** 지금 담은 실천 [{mission, count}] — 화면에는 서버가 준 미션 목록 순서대로 보여 준다 */
+function cartItems() {
+  return d().missions
+    .map((mission) => ({ mission, count: Number(state.cart[mission.id] || 0) }))
+    .filter((x) => x.count > 0);
 }
 
 function missionListHtml() {
@@ -674,14 +777,185 @@ function missionListHtml() {
     return m.air === Number(filter);
   });
   if (!list.length) return `<div class="empty"><b>조건에 맞는 미션이 없어요.</b>검색어나 공기 필터를 바꿔 보세요.</div>`;
-  return list.map((m) => `
-    <button type="button" class="mission-btn ${state.picked === m.id ? 'on' : ''}" data-action="pick" data-id="${esc(m.id)}" aria-pressed="${state.picked === m.id}">
-      <span>${esc(m.name)}${m.active ? '' : ' <span class="badge soft">쉬는 중</span>'}</span>
-      <span class="air-pill">${nf(m.air)}공기</span>
-    </button>`).join('');
+  return list.map((m) => {
+    const n = Number(state.cart[m.id] || 0);
+    return `
+    <div class="mission-row ${n ? 'on' : ''} ${m.active ? '' : 'off'}">
+      <button type="button" class="mission-main" data-action="pick" data-id="${esc(m.id)}" aria-pressed="${n > 0}">
+        <span class="m-title">${esc(m.name)}${m.active ? '' : ' <span class="badge soft">쉬는 중</span>'}</span>
+        <span class="air-pill">${nf(m.air)}공기</span>
+      </button>
+      <div class="stepper" role="group" aria-label="${esc(m.name)} 수량">
+        <button type="button" class="step" data-action="cart-minus" data-id="${esc(m.id)}" aria-label="하나 줄이기" ${n ? '' : 'disabled'}>−</button>
+        <b class="count" aria-live="polite">${nf(n)}</b>
+        <button type="button" class="step" data-action="cart-plus" data-id="${esc(m.id)}" aria-label="하나 더" ${m.active ? '' : 'disabled'}>＋</button>
+      </div>
+    </div>`;
+  }).join('');
 }
 
-// ---------- 랭킹 ----------
+/** 담은 실천이 바뀔 때 그 부분만 다시 그린다 (검색어·날짜 입력은 그대로) */
+function paintCart() {
+  const list = $('#mission-list');
+  if (list) list.innerHTML = missionListHtml();
+  const cart = cartItems();
+  const air = cart.reduce((n, c) => n + c.mission.air * c.count, 0);
+  const count = cart.reduce((n, c) => n + c.count, 0);
+  const countEl = $('#cart-count');
+  if (countEl) countEl.textContent = nf(count);
+  const nameEl = $('#picked-name');
+  if (nameEl) nameEl.innerHTML = count ? cart.map((c) => `${esc(c.mission.name)} × ${nf(c.count)}`).join('<br>') : '왼쪽에서 미션을 골라 주세요';
+  const airEl = $('#cart-air');
+  if (airEl) airEl.textContent = `+${nf(air)}`;
+  const submit = $('#cart-submit');
+  if (submit) {
+    submit.disabled = !count;
+    submit.textContent = count ? `${nf(air)}공기 적립하기` : '미션을 골라 주세요';
+  }
+  const clear = $('[data-action="cart-clear"]');
+  if (clear) clear.disabled = !count;
+}
+
+// ---------- 사진 고르기 (올리기 전에 줄이고, 등록할 때 서버로 보낸다) ----------
+const IMAGE_MAX_WIDTH = 1200;
+
+function imageFieldHtml(key, label) {
+  const img = state.images[key];
+  const src = img?.dataUrl || (img?.path ? imgSrc(img.path) : '');
+  return `<div class="image-field">
+    <div class="image-field-head">
+      <span class="field-label">${esc(label || '사진')} <small>(선택)</small></span>
+      ${src ? `<button type="button" class="btn tiny ghost" data-action="image-clear" data-key="${key}">사진 지우기</button>` : ''}
+    </div>
+    <div class="image-field-body">
+      <label class="btn sm ghost file-btn">📷 사진 고르기
+        <input type="file" accept="image/*" class="file-input" data-image="${key}">
+      </label>
+      ${src ? `<img class="image-thumb" src="${esc(src)}" alt="고른 사진 미리보기">` : '<span class="hint">사진 없이도 기록할 수 있어요.</span>'}
+    </div>
+  </div>`;
+}
+
+function repaintImageField(key) {
+  const el = $(`#image-field-${key}`);
+  if (el) el.innerHTML = imageFieldHtml(key, key === 'notice' ? '공지 사진' : key === 'lot' ? '물품 사진' : '사진');
+}
+
+function loadBitmap(file) {
+  if (window.createImageBitmap) {
+    return createImageBitmap(file, { imageOrientation: 'from-image' }).catch(() => loadViaImg(file));
+  }
+  return loadViaImg(file);
+}
+function loadViaImg(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const im = new Image();
+    im.onload = () => { URL.revokeObjectURL(url); resolve(im); };
+    im.onerror = () => { URL.revokeObjectURL(url); reject(new Error('사진을 읽지 못했어요.')); };
+    im.src = url;
+  });
+}
+/** 사진을 가로 1200px 이하로 줄여 WebP(안 되면 JPEG)로 바꾼다 — 휴대폰 원본 몇 MB도 200KB 안팎으로 */
+async function shrinkImage(file) {
+  const bmp = await loadBitmap(file);
+  const w0 = bmp.width || bmp.naturalWidth || 0;
+  const h0 = bmp.height || bmp.naturalHeight || 0;
+  if (!w0 || !h0) throw new Error('사진 크기를 읽지 못했어요.');
+  const scale = Math.min(1, IMAGE_MAX_WIDTH / Math.max(w0, h0));
+  const w = Math.max(1, Math.round(w0 * scale));
+  const h = Math.max(1, Math.round(h0 * scale));
+  const cv = document.createElement('canvas');
+  cv.width = w; cv.height = h;
+  const ctx = cv.getContext('2d');
+  ctx.drawImage(bmp, 0, 0, w, h);
+  if (bmp.close) bmp.close();
+  let dataUrl = cv.toDataURL('image/webp', 0.72);
+  if (!dataUrl.startsWith('data:image/webp')) dataUrl = cv.toDataURL('image/jpeg', 0.78);
+  return dataUrl;
+}
+
+/** 등록 직전에 사진을 서버에 올리고 주소('/images/번호')를 받는다. 사진이 없으면 ''. */
+async function imagePathFor(key) {
+  const img = state.images[key];
+  if (!img) return '';
+  if (img.path) return img.path;
+  if (!img.dataUrl) return '';
+  const r = await api.uploadImage(img.dataUrl);
+  state.images[key] = { path: r.path };
+  return r.path;
+}
+
+// ---------- 내 실천 모아보기 ----------
+function mineView() {
+  const me = meOf();
+  if (!state.user) {
+    return `<div class="wrap"><section class="card gate">
+      <span class="eyebrow">내 실천</span>
+      <h1>로그인하면 내 실천을 모아 볼 수 있어요</h1>
+      <p>내가 한 실천과 적립한 공기, 남긴 사진·댓글·반응을 한곳에서 확인할 수 있어요.</p>
+      <div class="form-actions"><button type="button" class="btn google" data-action="login"><span class="g" aria-hidden="true">G</span> 구글 로그인</button></div>
+    </section></div>`;
+  }
+  if (!me?.registered) {
+    return `<div class="wrap"><section class="card gate">
+      <span class="eyebrow">내 실천</span>
+      <h1>먼저 내 정보를 등록해요</h1>
+      <p>${esc(me?.email || state.user.email || '')} 로 로그인했어요. 이름과 구분을 정하면 내 실천이 모입니다.</p>
+      <div class="form-actions"><button type="button" class="btn primary" data-action="open-profile">회원 정보 등록하기</button></div>
+    </section></div>`;
+  }
+
+  const all = d().mine || { count: 0, air: 0, by_mission: [], activities: [] };
+  const byMission = all.by_mission || [];
+  const maxCount = Math.max(1, ...byMission.map((m) => m.count || 0));
+  const f = state.mineFilter;
+  let list = all.activities || [];
+  if (f === 'photo') list = list.filter((a) => a.image_url);
+  else if (f.startsWith('mission:')) list = list.filter((a) => a.mission === f.slice(8));
+  const season = seasonOf();
+  const rank = me.rank || 0;
+
+  return `<div class="wrap">
+    <div class="section-head">
+      <h2>${icon('globe', 'ico lg')} 내 실천 모아보기</h2>
+      <span class="eyebrow">${esc(season?.name || '')} · ${esc(me.name)}</span>
+    </div>
+    <div class="mine-tiles">
+      <div class="mine-tile"><small>이번 시즌 실천</small><b>${nf(all.count)}<span class="u">회</span></b></div>
+      <div class="mine-tile"><small>모은 공기</small><b>${nf(all.air)}<span class="u">공기</span></b></div>
+      <div class="mine-tile"><small>지구를 맑게 한 몫</small><b>${nf(all.air)}<span class="u">탄소</span></b></div>
+      <div class="mine-tile"><small>이번 시즌 순위</small><b>${rank ? nf(rank) : '—'}<span class="u">위</span></b></div>
+    </div>
+
+    <section class="section" aria-labelledby="mine-missions">
+      <div class="section-head"><h2 id="mine-missions">미션별 요약</h2><span class="eyebrow">${nf(byMission.length)}가지</span></div>
+      ${byMission.length ? `<ul class="mission-sum">${byMission.map((m) => `
+        <li class="${f === `mission:${m.mission}` ? 'on' : ''}">
+          <button type="button" class="mission-sum-btn" data-action="mine-filter" data-filter="mission:${esc(m.mission)}">
+            <span class="ms-name">${esc(m.mission)}</span>
+            <span class="bar ms-bar"><i class="${wcls((m.count / maxCount) * 100)}"></i></span>
+            <span class="ms-num">${nf(m.count)}회 · ${nf(m.air)}공기</span>
+          </button>
+        </li>`).join('')}</ul>` : '<div class="empty"><b>아직 미션별 요약이 없어요.</b>실천을 등록하면 미션별로 모아 보여 드려요.</div>'}
+    </section>
+
+    <section class="section" aria-labelledby="mine-feed">
+      <div class="section-head">
+        <h2 id="mine-feed">내 기록</h2>
+        <span class="eyebrow">${nf(list.length)}건</span>
+      </div>
+      <div class="chips" role="group" aria-label="내 기록 걸러 보기">
+        <button type="button" class="chip ${f === 'all' ? 'on' : ''}" data-action="mine-filter" data-filter="all" aria-pressed="${f === 'all'}">전체</button>
+        <button type="button" class="chip ${f === 'photo' ? 'on' : ''}" data-action="mine-filter" data-filter="photo" aria-pressed="${f === 'photo'}">사진 있는 기록</button>
+        ${byMission.slice(0, 6).map((m) => `<button type="button" class="chip ${f === `mission:${m.mission}` ? 'on' : ''}" data-action="mine-filter" data-filter="mission:${esc(m.mission)}" aria-pressed="${f === `mission:${m.mission}`}">${esc(short(m.mission, 16))}</button>`).join('')}
+      </div>
+      ${list.length ? feedHtml(list) : `<div class="empty"><b>${f === 'all' ? '아직 등록한 실천이 없어요.' : '조건에 맞는 기록이 없어요.'}</b>${f === 'all' ? '실천 탭에서 첫 공기를 적립해 보세요.' : '다른 걸러 보기를 눌러 보세요.'}</div>`}
+      <p class="hint mt8">사진을 누르면 크게 볼 수 있어요. 내 기록은 여기서 바로 지울 수 있어요. (댓글·반응도 함께 사라져요)</p>
+    </section>
+  </div>`;
+}
+
 function rankingView() {
   const data = d();
   const season = seasonOf();
@@ -725,14 +999,13 @@ function rankingView() {
             <tr>
               <th scope="col" class="num">순위</th><th scope="col">이름</th><th scope="col">구분</th>
               <th scope="col" class="num">총 적립</th><th scope="col" class="num">실천 횟수</th>
-              <th scope="col" class="num">남은 공기</th><th scope="col">성장</th>
+              <th scope="col" class="num">남은 공기</th><th scope="col">지구에 보탠 몫</th>
             </tr>
           </thead>
           <tbody>
             ${list.length ? list.map((m, i) => {
               const rank = i + 1;
               const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
-              const g = growthOf(m.earned);
               const isMe = me?.registered && me.user_id === m.user_id;
               return `<tr class="${isMe ? 'me' : ''} ${rank <= 3 ? 'top' + rank : ''}">
                 <td class="num rank-cell">${medal ? `<span class="medal" aria-hidden="true">${medal}</span>` : ''}<b>${nf(rank)}</b></td>
@@ -741,7 +1014,7 @@ function rankingView() {
                 <td class="num air-strong">${nf(m.earned)}</td>
                 <td class="num">${nf(m.acts)}회</td>
                 <td class="num">${nf(m.available)}</td>
-                <td><span class="grow-pill">${icon(g.cur.icon, 'ico sm')} ${esc(g.cur.name)}</span></td>
+                <td><span class="grow-pill">${icon('globe', 'ico sm')} 정화 ${nf(m.earned)}</span></td>
               </tr>`;
             }).join('') : '<tr><td colspan="7" class="muted empty-cell">아직 회원이 없어요.</td></tr>'}
           </tbody>
@@ -848,6 +1121,7 @@ function lotForm() {
         <label class="field"><span>시작가 (공기)</span><input type="number" name="start_price" min="1" max="100000" step="1" value="${editing ? editing.start_price : 5}" required></label>
         <label class="field"><span>최소 입찰 단위 (공기)</span><input type="number" name="min_step" min="1" max="10000" step="1" value="${editing ? editing.min_step : 1}" required></label>
       </div>
+      <div id="image-field-lot">${imageFieldHtml('lot', '물품 사진')}</div>
       <p class="hint">등록한 물품은 <b>대기</b>로 올라가 모두가 미리 구경할 수 있어요. 관리자가 <b>경매 시작</b>을 누르면 입찰이 열립니다.</p>
       <div class="form-actions">
         <button type="submit" class="btn primary">${editing ? '저장' : '물품 등록'}</button>
@@ -911,6 +1185,7 @@ function auctionCard(a) {
   return `<article class="auction ${a.status === 'closed' ? 'closed' : ''} ${a.status === 'canceled' ? 'canceled' : ''} ${waiting ? 'waiting' : ''}">
     <header><h3>${esc(a.title)}</h3>${statusBadge}</header>
     <div class="body">
+      ${a.image_url ? photoHtml(a.image_url, `${a.title} 사진`, 'auction-photo') : ''}
       ${a.description ? `<p class="desc">${esc(a.description)}</p>` : ''}
       <div class="seller">${icon('leaf', 'ico sm')} 올린 사람 <b>${esc(seller || '관리자')}</b>${isSeller ? ' <span class="badge soft">나</span>' : ''}</div>
       <div class="price-row">
@@ -980,6 +1255,7 @@ function adminNotices() {
         <label class="field span2"><span>제목</span><input type="text" name="title" maxlength="80" value="${esc(editing?.title || '')}" placeholder="예: 이번 주 플리마켓 안내" required></label>
       </div>
       <label class="field"><span>본문</span><textarea name="body" rows="3" maxlength="2000" placeholder="모두에게 보여 줄 내용">${esc(editing?.body || '')}</textarea></label>
+      <div id="image-field-notice">${imageFieldHtml('notice', '공지 사진')}</div>
       <label class="check"><input type="checkbox" name="pinned" ${editing?.pinned ? 'checked' : ''}> <span>상단에 고정</span></label>
       <div class="form-actions">
         <button type="submit" class="btn primary">${editing ? '공지 저장' : '공지 올리기'}</button>
@@ -989,7 +1265,7 @@ function adminNotices() {
     ${d().notices.length ? `<ul class="admin-list">${d().notices.map((n) => `
       <li class="${n.pinned ? 'pinned' : ''}">
         <div class="admin-list-main">
-          <b>${n.pinned ? '📌 ' : ''}${esc(n.title)}</b>
+          <b>${n.pinned ? '📌 ' : ''}${esc(n.title)}${n.image_url ? ' <span class="badge soft">📷 사진</span>' : ''}</b>
           <small>${fmtWhen(n.created_at)} · ${esc(n.author_name || '관리자')}${n.body ? ` · ${esc(short(n.body, 60))}` : ''}</small>
         </div>
         <div class="row-actions">
@@ -1004,8 +1280,24 @@ function adminNotices() {
 function adminSeasons() {
   const list = d().seasons.slice().reverse();
   const cur = seasonOf();
+  const e = cur?.earth || {};
   return `<section class="card admin-panel" aria-labelledby="admin-season">
     <div class="card-head"><h2 id="admin-season">시즌 관리</h2><span class="badge soft">${nf(list.length)}개</span></div>
+    ${cur ? `<div class="earth-admin">
+      <h3 class="sub-title">🌍 지구 설정 — ${esc(cur.name)}</h3>
+      <form class="form-grid" data-action="earth" data-id="${cur.id}">
+        <div class="form-row three">
+          <label class="field"><span>1시간마다 발생하는 탄소</span><input type="number" name="carbon_per_hour" min="0" max="1000" step="0.1" value="${Number(e.carbon_per_hour ?? 1)}" required></label>
+          <label class="field"><span>지구가 완전히 붉어지는 순탄소</span><input type="number" name="carbon_capacity" min="0.1" max="100000" step="0.1" value="${Number(e.carbon_capacity ?? 24)}" required></label>
+          <div class="form-actions end"><button type="submit" class="btn primary">설정 저장</button></div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn ghost" data-action="earth-reset" data-id="${cur.id}">탄소 기준 시각을 지금으로 리셋</button>
+          <span class="hint">지금 탄소 ${nf(e.emitted ?? 0)}개 · 공기 ${nf(e.air ?? 0)}개 · 순탄소 ${nf(e.net ?? 0)}개 (오염도 ${nf(e.pollution_pct ?? 0)}%)</span>
+        </div>
+        <p class="hint">탄소는 기준 시각부터 <b>한 시간마다</b> 쌓여요(크론 없이 계산). 리셋하면 그 시각부터 다시 세고, 지구는 그만큼 맑아져요.</p>
+      </form>
+    </div>` : ''}
     <form class="form-grid mb16" data-action="season" id="season-form">
       <div class="form-row">
         <label class="field"><span>새 시즌 이름</span><input type="text" name="name" maxlength="40" placeholder="예: 2026 시즌 2" required></label>
@@ -1176,20 +1468,42 @@ document.addEventListener('click', async (e) => {
     return;
   }
   if (action === 'close-dialog') { const dlg = el.closest('dialog'); if (dlg?.open) dlg.close(); return; }
-  if (action === 'pick') {
-    state.picked = state.picked === el.dataset.id ? null : el.dataset.id;
-    const list = $('#mission-list');
-    if (list) list.innerHTML = missionListHtml();
-    const picked = d().missions.find((m) => m.id === state.picked) || null;
-    const nameEl = $('#picked-name');
-    if (nameEl) nameEl.textContent = picked ? picked.name : '아래에서 미션을 골라 주세요';
-    const box = $('.pick-box');
-    if (box && picked) {
-      const reward = $('.reward', box);
-      if (reward) reward.innerHTML = `<b>+${nf(picked.air)}</b><small>공기</small>`;
-      const submit = $('form[data-action="activity"] button[type="submit"]', box);
-      if (submit) { submit.disabled = false; submit.textContent = `${nf(picked.air)}공기 적립하기`; }
-    }
+  if (action === 'pick' || action === 'cart-plus' || action === 'cart-minus') {
+    const id = el.dataset.id;
+    const mission = d().missions.find((m) => m.id === id);
+    if (!mission) return;
+    if (!mission.active) { toast('지금은 쉬고 있는 미션이에요.', 'err'); return; }
+    const cur = Number(state.cart[id] || 0);
+    let next = action === 'cart-minus' ? cur - 1 : cur + 1;
+    if (action === 'pick') next = cur + 1;
+    next = Math.max(0, Math.min(30, next));
+    if (next === 0) delete state.cart[id]; else state.cart[id] = next;
+    paintCart();
+    return;
+  }
+  if (action === 'cart-clear') {
+    state.cart = {};
+    paintCart();
+    return;
+  }
+  if (action === 'mine-filter') {
+    state.mineFilter = el.dataset.filter || 'all';
+    render();
+    return;
+  }
+  if (action === 'image-clear') {
+    const key = el.dataset.key;
+    state.images[key] = null;
+    repaintImageField(key);
+    return;
+  }
+  if (action === 'zoom') {
+    const src = el.dataset.src;
+    const dlg = $('#image-dialog');
+    if (!dlg || !src) return;
+    const img = $('#image-dialog-img');
+    if (img) img.src = src;
+    if (!dlg.open) dlg.showModal();
     return;
   }
   if (action === 'air-filter') {
@@ -1252,10 +1566,17 @@ document.addEventListener('click', async (e) => {
     render();
     return;
   }
-  if (action === 'new-lot') { state.lotForm = state.lotForm === null ? 'new' : null; render(); return; }
+  if (action === 'new-lot') {
+    state.lotForm = state.lotForm === null ? 'new' : null;
+    if (state.lotForm === 'new') state.images.lot = null;
+    render();
+    return;
+  }
   if (action === 'cancel-lot') { state.lotForm = null; render(); return; }
   if (action === 'edit-lot') {
     state.lotForm = el.dataset.id;
+    const lot = d().auctions.find((a) => a.id === el.dataset.id) || null;
+    state.images.lot = lot?.image_url ? { path: lot.image_url } : null;
     state.view = 'auctions';
     render();
     const form = $('#lot-form');
@@ -1292,6 +1613,8 @@ document.addEventListener('click', async (e) => {
   }
   if (action === 'notice-edit') {
     state.editNotice = el.dataset.id;
+    const editing = d().notices.find((n) => n.id === el.dataset.id) || null;
+    state.images.notice = editing?.image_url ? { path: editing.image_url } : null;
     state.adminTab = 'notice';
     render();
     $('#notice-form')?.querySelector('input[name="title"]')?.focus();
@@ -1315,6 +1638,16 @@ document.addEventListener('click', async (e) => {
       toast('공지를 지웠어요.', 'ok');
       await load({ quiet: true });
     } catch (err) { toast(err.message || '지우지 못했어요.', 'err'); }
+    return;
+  }
+  if (action === 'earth-reset') {
+    const ok = await askConfirm('탄소 기준 시각을 지금으로 리셋할까요? 지금까지 쌓인 탄소가 0이 되어 지구가 맑아져요. (지우는 기록은 없어요)');
+    if (!ok) return;
+    try {
+      await withBusy(el, () => api.setEarth(el.dataset.id, { reset: true }));
+      toast('지구의 탄소 기준 시각을 지금으로 리셋했어요.', 'ok');
+      await load({ quiet: true });
+    } catch (err) { toast(err.message || '리셋하지 못했어요.', 'err'); }
     return;
   }
   if (action === 'season-activate') {
@@ -1412,16 +1745,18 @@ document.addEventListener('submit', async (e) => {
   const btn = form.querySelector('button[type="submit"]');
 
   if (action === 'activity') {
-    const picked = d().missions.find((m) => m.id === state.picked);
-    if (!picked) { toast('먼저 미션을 골라 주세요.', 'err'); return; }
+    const items = cartItems().map((c) => ({ mission_id: c.mission.id, count: c.count }));
+    if (!items.length) { toast('먼저 미션을 골라 주세요.', 'err'); return; }
     const day = form.querySelector('input[name="day"]')?.value || todayStr();
     state.day = day;
     try {
       await withBusy(btn, async () => {
-        const r = await api.addActivity(picked.id, day);
-        toast(`「${r.activity.mission}」 ${nf(r.activity.air)}공기를 적립했어요!`, 'ok');
+        const image_url = await imagePathFor('activity');
+        const r = await api.addActivities({ items, done_on: day, image_url });
+        toast(`실천 ${nf(r.count)}건 · ${nf(r.air)}공기를 적립했어요!`, 'ok');
       });
-      state.picked = null;
+      state.cart = {};
+      state.images.activity = null;
       await load({ quiet: true });
       switchView('practices');
     } catch (err) {
@@ -1447,7 +1782,7 @@ document.addEventListener('submit', async (e) => {
 
   if (action === 'lot') {
     const fd = new FormData(form);
-    const payload = {
+    const base = {
       title: String(fd.get('title') || ''),
       description: String(fd.get('description') || ''),
       start_price: Number(fd.get('start_price')),
@@ -1455,9 +1790,14 @@ document.addEventListener('submit', async (e) => {
     };
     const editing = state.lotForm && state.lotForm !== 'new' ? state.lotForm : null;
     try {
-      await withBusy(btn, () => (editing ? api.patchAuction(editing, payload) : api.addAuction(payload)));
+      await withBusy(btn, async () => {
+        const image_url = await imagePathFor('lot');
+        const payload = { ...base, image_url };
+        return editing ? api.patchAuction(editing, payload) : api.addAuction(payload);
+      });
       toast(editing ? '물품 정보를 고쳤어요.' : '물품을 등록했어요. 대기 중 목록에서 볼 수 있어요.', 'ok');
       state.lotForm = null;
+      state.images.lot = null;
       render();
       await load({ quiet: true });
     } catch (err) { toast(err.message || '처리하지 못했어요.', 'err'); }
@@ -1478,18 +1818,37 @@ document.addEventListener('submit', async (e) => {
 
   if (action === 'notice') {
     const fd = new FormData(form);
-    const payload = {
+    const base = {
       title: String(fd.get('title') || ''),
       body: String(fd.get('body') || ''),
       pinned: fd.get('pinned') === 'on',
     };
     try {
-      await withBusy(btn, () => (state.editNotice ? api.patchNotice(state.editNotice, payload) : api.addNotice(payload)));
+      await withBusy(btn, async () => {
+        const image_url = await imagePathFor('notice');
+        const payload = { ...base, image_url };
+        return state.editNotice ? api.patchNotice(state.editNotice, payload) : api.addNotice(payload);
+      });
       toast(state.editNotice ? '공지를 고쳤어요.' : '공지를 올렸어요.', 'ok');
       state.editNotice = null;
+      state.images.notice = null;
       render();
       await load({ quiet: true });
     } catch (err) { toast(err.message || '공지를 올리지 못했어요.', 'err'); }
+    return;
+  }
+
+  if (action === 'earth') {
+    const fd = new FormData(form);
+    const payload = {
+      carbon_per_hour: Number(fd.get('carbon_per_hour')),
+      carbon_capacity: Number(fd.get('carbon_capacity')),
+    };
+    try {
+      await withBusy(btn, () => api.setEarth(form.dataset.id, payload));
+      toast('지구 설정을 저장했어요.', 'ok');
+      await load({ quiet: true });
+    } catch (err) { toast(err.message || '저장하지 못했어요.', 'err'); }
     return;
   }
 
@@ -1513,6 +1872,23 @@ document.addEventListener('submit', async (e) => {
       toast('미션을 더했어요.', 'ok');
       await load({ quiet: true });
     } catch (err) { toast(err.message || '추가하지 못했어요.', 'err'); }
+  }
+});
+
+// 사진 고르기 — 줄여서 미리 보여 주고, 등록할 때 올린다
+document.addEventListener('change', async (e) => {
+  const input = e.target.closest('input[type="file"][data-image]');
+  if (!input) return;
+  const key = input.dataset.image;
+  const file = input.files?.[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { toast('사진 파일만 고를 수 있어요.', 'err'); return; }
+  try {
+    const dataUrl = await shrinkImage(file);
+    state.images[key] = { dataUrl };
+    repaintImageField(key);
+  } catch (err) {
+    toast(err.message || '사진을 읽지 못했어요.', 'err');
   }
 });
 
@@ -1598,6 +1974,14 @@ function initTheme() {
   });
 }
 
+// ---------- 1분마다 지구 다시 칠하기 ----------
+window.setInterval(() => {
+  if (state.view !== 'home' || !state.data) return;
+  const el = $('#earth-card');
+  if (!el) return;
+  el.outerHTML = earthCardHtml();
+}, 30000);
+
 // ---------- 시작 ----------
 initTheme();
 applyAppInfo(' · BMR APPS');
@@ -1613,7 +1997,13 @@ onUserChange((user) => {
   const prev = state.user?.id ?? null;
   state.user = user;
   if (!booted) { boot(); return; }
-  if ((user?.id ?? null) !== prev) { state.picked = null; state.lotForm = null; state.editNotice = null; load({ quiet: true }); }
+  if ((user?.id ?? null) !== prev) {
+    state.cart = {};
+    state.images = { activity: null, notice: null, lot: null };
+    state.lotForm = null;
+    state.editNotice = null;
+    load({ quiet: true });
+  }
   else render();
 });
 

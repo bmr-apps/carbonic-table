@@ -51,6 +51,10 @@ export const api = {
   saveProfile: (name, kind) => request('/me', { method: 'POST', body: { name, kind } }),
   deleteProfile: () => request('/me', { method: 'DELETE' }),
   addActivity: (mission_id, done_on) => request('/activities', { method: 'POST', body: { mission_id, done_on } }),
+  // 여러 미션·같은 미션 여러 번을 한 번에: { items: [{ mission_id, count }], done_on, image_url? }
+  addActivities: (payload) => request('/activities', { method: 'POST', body: payload }),
+  // 사진 올리기 — data:image/webp;base64,… 를 보내면 { path: '/images/번호' } 를 돌려줍니다
+  uploadImage: (data) => request('/images', { method: 'POST', body: { data } }),
   deleteActivity: (id) => request(`/activities/${seg(id)}`, { method: 'DELETE' }),
   react: (id, emoji) => request(`/activities/${seg(id)}/reactions`, { method: 'POST', body: { emoji } }),
   addComment: (id, body) => request(`/activities/${seg(id)}/comments`, { method: 'POST', body: { body } }),
@@ -60,6 +64,7 @@ export const api = {
   deleteNotice: (id) => request(`/notices/${seg(id)}`, { method: 'DELETE' }),
   addSeason: (name, note) => request('/seasons', { method: 'POST', body: { name, note } }),
   activateSeason: (id) => request(`/seasons/${seg(id)}/activate`, { method: 'POST', body: {} }),
+  setEarth: (id, patch) => request(`/seasons/${seg(id)}/earth`, { method: 'POST', body: patch }),
   endSeason: (id) => request(`/seasons/${seg(id)}/end`, { method: 'POST', body: {} }),
   deleteSeason: (id) => request(`/seasons/${seg(id)}`, { method: 'DELETE' }),
   addMission: (name, air) => request('/missions', { method: 'POST', body: { name, air } }),

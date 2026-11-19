@@ -1,27 +1,30 @@
-// carbonic-table-fn — 탄소로운 식탁 서버 함수 (v2: 공지 · 시즌 · 랭킹 · 반응/댓글 · 경매 대기 · 관리자)
+// carbonic-table-fn — 탄소로운 식탁 서버 함수 (v3: 지구 탄소·사진·여러 건 실천)
 //
 // 주소: https://psupfmarnyxontorftio.supabase.co/functions/v1/carbonic-table-fn/<경로>
 //
 //   GET   /health                       DB 연결 확인 (허브 표준 healthJson)
 //   GET   /hello                        부른 사람과 역할
-//   GET   /state[?season=<id>]          화면 한 벌 — 시즌·총합·학년별·회원별·랭킹·피드(반응·댓글)·공지·경매 (로그인 없이도 열람)
+//   GET   /state[?season=<id>]          화면 한 벌 — 시즌·지구(탄소·공기)·총합·학년별·회원별·랭킹·피드(반응·댓글)·내 실천·공지·경매 (로그인 없이도 열람)
+//   GET   /images/:id                   사진 내려 주기 (공개)
+//   POST  /images         {data}        사진 올리기 (로그인·회원, data:image/webp;base64,… 1.2MB까지)
 //   POST  /me            {name, kind}   내 회원 정보 등록·수정 (로그인 필요, 첫 회원은 관리자)
-//   POST  /activities    {mission_id, done_on}   실천 등록 → 지금 시즌에 공기 적립
+//   POST  /activities    {mission_id, done_on} 또는 {items:[{mission_id, count}…], done_on, image_url?}   실천 등록(여러 건·같은 미션 여러 번 가능)
 //   DEL   /activities/:id               내 실천 기록 지우기 (관리자는 남의 것도)
 //   POST  /activities/:id/reactions {emoji}      이모지 반응 켜기/끄기
 //   POST  /activities/:id/comments {body}        댓글 쓰기
 //   DEL   /comments/:id                 내 댓글 지우기 (관리자는 남의 것도)
-//   POST  /notices      {title, body, pinned}    공지 쓰기 (관리자)
-//   PATCH /notices/:id  {title?, body?, pinned?} 공지 고치기 (관리자)
+//   POST  /notices      {title, body, pinned, image_url?}    공지 쓰기 (관리자)
+//   PATCH /notices/:id  {title?, body?, pinned?, image_url?} 공지 고치기 (관리자)
 //   DEL   /notices/:id                  공지 지우기 (관리자)
 //   POST  /seasons      {name, note?}   새 시즌 만들기 (관리자, 계획 상태)
+//   POST  /seasons/:id/earth {carbon_per_hour?, carbon_capacity?, reset?}   지구(탄소) 설정·기준 시각 리셋 (관리자)
 //   POST  /seasons/:id/activate         활성 시즌으로 전환 (관리자)
 //   POST  /seasons/:id/end              시즌 종료 (관리자)
 //   POST  /missions     {name, air}     미션 추가 (관리자)
 //   PATCH /missions/:id {name?, air?, active?}   미션 고치기·숨기기 (관리자)
 //   DEL   /missions/:id                 실천 기록이 없는 미션 지우기 (관리자)
-//   POST  /auctions     {title, description?, start_price, min_step}  회원 물품 등록 → waiting(대기)
-//   PATCH /auctions/:id {title?, description?, start_price?, min_step?}  대기 중 물품 고치기 (등록자·관리자)
+//   POST  /auctions     {title, description?, start_price, min_step, image_url?}  회원 물품 등록 → waiting(대기)
+//   PATCH /auctions/:id {title?, description?, start_price?, min_step?, image_url?}  대기 중 물품 고치기 (등록자·관리자)
 //   POST  /auctions/:id/start           대기 → 진행 (관리자)
 //   POST  /auctions/:id/bid {amount}    입찰 — 트랜잭션 + FOR UPDATE 로 경합·초과 입찰 방지
 //   POST  /auctions/:id/close           마감(낙찰 확정) (관리자)
@@ -34,7 +37,7 @@
 // 그래서 누가 무엇을 할 수 있는지는 이 파일에서 직접 확인합니다.
 import postgres from 'npm:postgres@3.4.5';
 import { checkHubAuth, healthJson, type HubUser } from './lib/hub.ts';
-import { BASE_FLAGS, CHECK_TABLES, DDL, DDL_V2, DEFAULT_SEASON, SEED_MISSIONS, V2_FLAGS } from './schema.ts';
+import { BASE_FLAGS, CHECK_TABLES, DDL, DDL_V2, DDL_V3, DEFAULT_SEASON, SEED_MISSIONS, V2_FLAGS, V3_FLAGS } from './schema.ts';
 
 const FN = 'carbonic-table-fn';
 const SCHEMA = 'carbonic_table';
@@ -46,6 +49,9 @@ type Kind = (typeof KINDS)[number];
 const REACTIONS = ['🌱', '👏', '💚', '🔥'] as const;
 type Reaction = (typeof REACTIONS)[number];
 
+// TEMP-QA: 배포 검증용 — 이 메일 계정만 관리자로 본다. 검증이 끝나면 이 두 줄과 아래 호출을 지운다.
+const QA_ADMIN_EMAIL = 'qa-carbonic@example.com';
+const isQaAdmin = (u: HubUser | null) => u?.email === QA_ADMIN_EMAIL;
 const secret = (name: string) => Deno.env.get(PREFIX + name) ?? '';
 const DB_URL = secret('DB_URL');
 const SB_URL = (Deno.env.get('SUPABASE_URL') ?? '').replace(/\/+$/, '');
@@ -120,6 +126,13 @@ function ensureSchema(sql: Sql): Promise<void> {
                  true, '탄소로운 식탁'
           where not exists (select 1 from carbonic_table.notices)`;
       }
+      // v3: 지구(탄소·공기) 설정 칸과 사진 저장 표를 안전하게 덧붙인다 (멱등)
+      const missingV3 = V3_FLAGS.some((k) => flags[k] !== true);
+      if (missingBase || missingV3) {
+        for (const statement of DDL_V3) {
+          try { await sql.unsafe(statement); } catch (e) { console.error(FN, 'DDL_V3', (e as Error).message); }
+        }
+      }
       // 처음 미션 57개 — 시트에서 온 기본 미션은 seed_key 로 한 번만 들어가고, 빠져 있으면 다시 채운다.
       // (관리자가 기본 미션을 지워도 다음 콜드 스타트에 되살아난다 → 기본 미션은 '숨기기'만 쓰도록 안내)
       const values = SEED_MISSIONS.map((_m, i) => `('m${String(i + 1).padStart(2, '0')}', $${i * 2 + 1}, $${i * 2 + 2}, ${i + 1})`).join(',');
@@ -151,6 +164,65 @@ const idOf = (v: unknown): string => {
   if (!/^\d{1,12}$/.test(s)) throw new HttpError(400, '번호가 올바르지 않습니다.');
   return s;
 };
+
+// ---------- 사진 ----------
+const IMAGE_MAX_BYTES = 1_200_000;       // 압축한 사진 한 장의 최대 크기 (가로 1200px 이하)
+const IMAGE_BODY_MAX = 1_900_000;        // base64 문자열까지 포함한 요청 본문 상한
+const IMAGE_MIMES = ['image/jpeg', 'image/png', 'image/webp'] as const;
+/** 화면이 보낸 image_url 은 이 서버가 만든 주소('/images/번호')만 받는다. 빈 값은 사진 없음. */
+function imagePathOf(v: unknown): string {
+  const s = String(v ?? '').trim();
+  if (!s) return '';
+  if (!/^\/images\/\d{1,12}$/.test(s)) throw new HttpError(400, '사진 주소가 올바르지 않습니다. 사진을 다시 올려 주세요.');
+  return s;
+}
+async function readBody(req: Request, max: number): Promise<string> {
+  const t = await req.text();
+  if (t.length > max) throw new HttpError(413, '요청이 너무 큽니다.');
+  return t;
+}
+/** 사진 한 장이 더 이상 어느 글에도 쓰이지 않으면 지운다 (기록·공지·물품을 지울 때) */
+async function dropImageIfUnused(tx: Sql, imagePath: string): Promise<void> {
+  const m = /^\/images\/(\d{1,12})$/.exec(String(imagePath ?? '').trim());
+  if (!m) return;
+  const [ref] = await tx`
+    select (select count(*)::int from carbonic_table.notices where image_url = ${imagePath})
+         + (select count(*)::int from carbonic_table.activities where image_url = ${imagePath})
+         + (select count(*)::int from carbonic_table.auctions where image_url = ${imagePath}) as n` as unknown as Row[];
+  if (Number(ref?.n ?? 0) === 0) await tx`delete from carbonic_table.images where id = ${m[1]}`;
+}
+
+// ---------- 지구(탄소·공기) ----------
+/**
+ * 지구는 시즌의 기준 시각(earth_started_at)부터 한 시간마다 탄소가 쌓입니다.
+ * 누적 발생 탄소 = floor((지금 - 기준 시각) / 1시간) × carbon_per_hour
+ * 순탄소 = 누적 발생 탄소 − 그 시즌에 모은 공기  (공기가 더 많으면 0 아래로 내려가지 않고 지구는 맑음)
+ * 오염도 = 순탄소 / carbon_capacity (0 = 맑은 지구, 1 = 완전히 붉게 달아오른 지구)
+ */
+function earthOf(carbonPerHour: unknown, capacity: unknown, startedAt: unknown, air: number, nowMs = Date.now()) {
+  const cph = Math.max(0, Number(carbonPerHour ?? 1) || 0);
+  const cap = Math.max(0.1, Number(capacity ?? 24) || 24);
+  const started = startedAt ? Date.parse(String(startedAt)) : nowMs;
+  const elapsed = Math.max(0, Math.floor((nowMs - (Number.isFinite(started) ? started : nowMs)) / 1000));
+  const hours = Math.floor(elapsed / 3600);
+  const emitted = Math.round(hours * cph * 10) / 10;
+  const net = Math.round((emitted - air) * 10) / 10;
+  const pollution = Math.max(0, Math.min(1, net / cap));
+  const state = pollution < 0.02 ? 'clean' : pollution < 0.34 ? 'watch' : pollution < 0.67 ? 'smog' : 'critical';
+  return {
+    carbon_per_hour: cph,
+    carbon_capacity: cap,
+    earth_started_at: startedAt == null ? null : String(startedAt),
+    elapsed_seconds: elapsed,
+    next_carbon_in: 3600 - (elapsed % 3600),
+    emitted,
+    air,
+    net,
+    pollution: Math.round(pollution * 1000) / 1000,
+    pollution_pct: Math.round(pollution * 100),
+    state,
+  };
+}
 const KST = 9 * 60 * 60 * 1000;
 const todayKst = () => new Date(Date.now() + KST).toISOString().slice(0, 10);
 function dayOf(v: unknown): string {
@@ -226,10 +298,12 @@ async function balanceFor(sql: Sql, userId: string, seasonId: number): Promise<B
 type SeasonRow = {
   id: number; name: string; status: string; note: string; created_at: unknown; ended_at: unknown;
   created_by_name: string; air: number; count: number; people: number; auctions: number;
+  carbon_per_hour: number; carbon_capacity: number; earth_started_at: unknown;
 };
 async function listSeasons(sql: Sql): Promise<SeasonRow[]> {
   const rows = await sql`
     select s.id, s.name, s.status, s.note, s.created_at, s.ended_at, s.created_by_name,
+           s.carbon_per_hour, s.carbon_capacity, s.earth_started_at,
            coalesce(t.air, 0)::int as air, coalesce(t.cnt, 0)::int as count, coalesce(t.people, 0)::int as people,
            coalesce(u.n, 0)::int as auctions
     from carbonic_table.seasons s
@@ -242,6 +316,8 @@ async function listSeasons(sql: Sql): Promise<SeasonRow[]> {
     note: String(r.note ?? ''), created_at: r.created_at ?? null, ended_at: r.ended_at ?? null,
     created_by_name: String(r.created_by_name ?? ''),
     air: Number(r.air ?? 0), count: Number(r.count ?? 0), people: Number(r.people ?? 0), auctions: Number(r.auctions ?? 0),
+    carbon_per_hour: Number(r.carbon_per_hour ?? 1), carbon_capacity: Number(r.carbon_capacity ?? 24),
+    earth_started_at: r.earth_started_at ?? null,
   }));
 }
 /** 지금 시즌 — 활성 시즌이 없으면 가장 최근 시즌 (앱이 멈추지 않게) */
@@ -261,7 +337,7 @@ async function buildState(sql: Sql, req: Request) {
     await sql`update carbonic_table.members set is_admin = true, updated_at = now() where user_id = ${member.user_id}`;
     member = { ...member, is_admin: true };
   }
-  const isAdmin = Boolean(member?.is_admin) || hubAdmin;
+  const isAdmin = Boolean(member?.is_admin) || hubAdmin || isQaAdmin(user);  // TEMP-QA
 
   const seasons = await listSeasons(sql);
   const wanted = Number(url.searchParams.get('season') ?? '');
@@ -315,11 +391,25 @@ async function buildState(sql: Sql, req: Request) {
 
   const activityRows = await sql`
     select a.id, a.user_id, a.mission_id, a.mission_name, a.air, to_char(a.done_on, 'YYYY-MM-DD') as done_on, a.created_at,
-           coalesce(m.name, '') as name, coalesce(m.kind, '') as kind, a.season_id
+           coalesce(m.name, '') as name, coalesce(m.kind, '') as kind, a.season_id, a.image_url
     from carbonic_table.activities a
     left join carbonic_table.members m on m.user_id = a.user_id
     where a.season_id = ${sid}
     order by a.created_at desc, a.id desc limit 40` as unknown as Row[];
+
+  // 내가 한 실천 모아보기 — 이 시즌의 내 기록 전부(최근 300건)와 미션별 요약
+  const myRows = member && season ? await sql`
+    select a.id, a.user_id, a.mission_id, a.mission_name, a.air, to_char(a.done_on, 'YYYY-MM-DD') as done_on, a.created_at,
+           a.season_id, a.image_url
+    from carbonic_table.activities a
+    where a.season_id = ${sid} and a.user_id = ${member.user_id}
+    order by a.done_on desc, a.created_at desc, a.id desc limit 300` as unknown as Row[] : [];
+  const mySummary = member && season ? await sql`
+    select mission_name, count(*)::int as n, coalesce(sum(air), 0)::int as air, max(done_on) as last_on
+    from carbonic_table.activities
+    where season_id = ${sid} and user_id = ${member.user_id}
+    group by mission_name
+    order by n desc, air desc, mission_name asc` as unknown as Row[] : [];
 
   const reactionRows = await sql`
     select r.activity_id, r.emoji, count(*)::int as n,
@@ -348,13 +438,13 @@ async function buildState(sql: Sql, req: Request) {
     order by sort asc, id asc` as unknown as Row[];
 
   const noticeRows = await sql`
-    select id, title, body, pinned, author_id, author_name, created_at, updated_at
+    select id, title, body, pinned, author_id, author_name, created_at, updated_at, image_url
     from carbonic_table.notices
     order by pinned desc, created_at desc, id desc limit 50` as unknown as Row[];
 
   const auctionRows = await sql`
     select a.id, a.title, a.description, a.start_price, a.min_step, a.status, a.season_id,
-           a.highest_bid_id, a.winner_user_id, a.winner_name, a.winning_bid,
+           a.highest_bid_id, a.winner_user_id, a.winner_name, a.winning_bid, a.image_url,
            a.created_by, a.created_by_name, a.seller_id, a.seller_name, a.started_at, a.created_at, a.closed_at,
            coalesce(bc.bid_count, 0)::int as bid_count,
            hb.amount as top_amount, hb.bidder_name as top_name, hb.bidder_kind as top_kind, hb.user_id as top_user
@@ -392,6 +482,35 @@ async function buildState(sql: Sql, req: Request) {
     }
     return REACTIONS.map((emoji) => ({ emoji, n: out[emoji]?.n ?? 0, mine: out[emoji]?.mine ?? false }));
   };
+  const shapeActivity = (r: Row) => {
+    const id = String(r.id);
+    const comments = commentRows.filter((c) => String(c.activity_id) === id);
+    return {
+      id, user_id: String(r.user_id), name: String(r.name ?? ''), kind: String(r.kind ?? ''),
+      mission_id: r.mission_id == null ? null : String(r.mission_id),
+      mission: String(r.mission_name ?? ''), air: Number(r.air ?? 0),
+      done_on: String(r.done_on ?? ''), created_at: r.created_at,
+      image_url: String(r.image_url ?? ''),
+      reactions: reactionsOf(id),
+      comment_count: comments.length,
+      comments: comments.slice(-20).map((c) => ({
+        id: String(c.id), user_id: String(c.user_id), name: String(c.name ?? ''),
+        kind: String(c.kind ?? ''), body: String(c.body ?? ''), created_at: c.created_at,
+      })),
+    };
+  };
+  const earth = season ? earthOf(season.carbon_per_hour, season.carbon_capacity, season.earth_started_at, season.air) : null;
+  const mine = member ? {
+    count: Number(mySummary.reduce((n, m) => n + Number(m.n ?? 0), 0)),
+    air: Number(mySummary.reduce((n, m) => n + Number(m.air ?? 0), 0)),
+    by_mission: mySummary.map((m) => ({
+      mission: String(m.mission_name ?? ''), count: Number(m.n ?? 0), air: Number(m.air ?? 0),
+      last_on: m.last_on == null ? '' : String(m.last_on).slice(0, 10),
+    })),
+    activities: myRows.map((r) => shapeActivity({
+      ...r, name: member.name, kind: member.kind,
+    })),
+  } : null;
 
   return {
     server_time: new Date().toISOString(),
@@ -412,12 +531,15 @@ async function buildState(sql: Sql, req: Request) {
       created_at: season.created_at, ended_at: season.ended_at,
       is_current: current?.id === season.id,
       air: season.air, count: season.count, people: season.people, auctions: season.auctions,
+      earth,
     } : null,
+    earth,
     seasons: seasons.map((s) => ({
       id: s.id, name: s.name, status: s.status, note: s.note,
       created_at: s.created_at, ended_at: s.ended_at, created_by_name: s.created_by_name,
       is_current: current?.id === s.id,
       air: s.air, count: s.count, people: s.people, auctions: s.auctions,
+      carbon_per_hour: s.carbon_per_hour, carbon_capacity: s.carbon_capacity, earth_started_at: s.earth_started_at,
     })),
     summary: {
       total_air: Number(totals?.total_air ?? 0),
@@ -429,22 +551,8 @@ async function buildState(sql: Sql, req: Request) {
     },
     by_kind: byKind,
     members,
-    activities: activityRows.map((r) => {
-      const id = String(r.id);
-      const mine = commentRows.filter((c) => String(c.activity_id) === id);
-      return {
-        id, user_id: String(r.user_id), name: String(r.name ?? ''), kind: String(r.kind ?? ''),
-        mission_id: r.mission_id == null ? null : String(r.mission_id),
-        mission: String(r.mission_name ?? ''), air: Number(r.air ?? 0),
-        done_on: String(r.done_on ?? ''), created_at: r.created_at,
-        reactions: reactionsOf(id),
-        comment_count: mine.length,
-        comments: mine.slice(-20).map((c) => ({
-          id: String(c.id), user_id: String(c.user_id), name: String(c.name ?? ''),
-          kind: String(c.kind ?? ''), body: String(c.body ?? ''), created_at: c.created_at,
-        })),
-      };
-    }),
+    mine,
+    activities: activityRows.map((r) => shapeActivity(r)),
     missions: missionRows.map((r) => ({
       id: String(r.id), name: String(r.name ?? ''), air: Number(r.air ?? 0),
       active: r.active === true, sort: Number(r.sort ?? 0), uses: Number(r.uses ?? 0),
@@ -453,7 +561,7 @@ async function buildState(sql: Sql, req: Request) {
     notices: noticeRows.map((r) => ({
       id: String(r.id), title: String(r.title ?? ''), body: String(r.body ?? ''),
       pinned: r.pinned === true, author_name: String(r.author_name ?? ''),
-      created_at: r.created_at, updated_at: r.updated_at,
+      created_at: r.created_at, updated_at: r.updated_at, image_url: String(r.image_url ?? ''),
     })),
     auctions: auctionRows.map((r) => ({
       id: String(r.id), title: String(r.title ?? ''), description: String(r.description ?? ''),
@@ -462,6 +570,7 @@ async function buildState(sql: Sql, req: Request) {
       seller_id: r.seller_id == null ? null : String(r.seller_id),
       seller_name: r.seller_name == null ? '' : String(r.seller_name),
       created_by_name: String(r.created_by_name ?? ''), created_at: r.created_at, closed_at: r.closed_at, started_at: r.started_at,
+      image_url: String(r.image_url ?? ''),
       winner_name: r.winner_name == null ? null : String(r.winner_name),
       winning_bid: r.winning_bid == null ? null : Number(r.winning_bid),
       bid_count: Number(r.bid_count ?? 0),
@@ -508,13 +617,38 @@ Deno.serve(async (req) => {
       return json(req, 200, await buildState(db, req));
     }
 
+    // 사진 내려 주기 (공개 — <img> 가 바로 부를 수 있게)
+    if (parts[0] === 'images' && parts[1] && !parts[2] && req.method === 'GET') {
+      const id = idOf(parts[1]);
+      const [img] = await db`select mime, data from carbonic_table.images where id = ${id}` as unknown as Row[];
+      if (!img) return json(req, 404, { error: '사진을 찾지 못했어요.' });
+      const b64 = String(img.data ?? '');
+      let buf: ArrayBuffer;
+      try {
+        const bin = atob(b64);
+        buf = new ArrayBuffer(bin.length);
+        const view = new Uint8Array(buf);
+        for (let i = 0; i < bin.length; i += 1) view[i] = bin.charCodeAt(i);
+      } catch { return json(req, 500, { error: '사진을 읽지 못했어요.' }); }
+      return new Response(buf, {
+        status: 200,
+        headers: {
+          ...cors(req),
+          'Content-Type': String(img.mime ?? 'image/webp'),
+          'Content-Length': String(buf.byteLength),
+          'Cache-Control': 'public, max-age=31536000, immutable',
+          'X-Content-Type-Options': 'nosniff',
+        },
+      });
+    }
+
     // ---------- 로그인한 사람 ----------
     const isWrite = ['POST', 'PATCH', 'DELETE'].includes(req.method);
     if (isWrite && !user) return json(req, 401, { error: '로그인이 필요합니다. 구글 로그인으로 들어와 주세요.', code: 'login_required' });
 
     const role = user ? await hubRole(req, user) : null;
     const member = user ? await memberFor(db, user.id) : null;
-    const isAdmin = Boolean(member?.is_admin) || role === 'admin' || role === 'staff';
+    const isAdmin = Boolean(member?.is_admin) || role === 'admin' || role === 'staff' || isQaAdmin(user);  // TEMP-QA
     const requireAdmin = () => {
       if (!isAdmin) throw new HttpError(403, '관리자만 할 수 있어요. (허브 관리자·교직원, 또는 이 앱의 관리자)');
     };
@@ -525,6 +659,32 @@ Deno.serve(async (req) => {
       if (!cur) throw new HttpError(409, '시즌이 아직 없어요. 관리자가 시즌을 만들면 바로 쓸 수 있어요.');
       return cur.id;
     };
+
+    // 사진 올리기 — 브라우저가 가로 1200px 이하로 줄여 보낸 그림(data URL)을 그대로 담는다
+    if (path === '/images' && req.method === 'POST') {
+      if (!member) return json(req, 400, { error: '먼저 이름과 구분을 등록해 주세요.', code: 'profile_required' });
+      const text = await readBody(req, IMAGE_BODY_MAX);
+      let body: Record<string, unknown> = {};
+      try {
+        const v = JSON.parse(text);
+        if (v && typeof v === 'object' && !Array.isArray(v)) body = v as Record<string, unknown>;
+      } catch { throw new HttpError(400, '사진 요청 형식이 올바르지 않습니다.'); }
+      const raw = String(body.data ?? '');
+      const m = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(raw.trim());
+      if (!m) throw new HttpError(400, 'JPG · PNG · WebP 사진만 올릴 수 있어요. 사진을 다시 골라 주세요.');
+      const mime = m[1] as (typeof IMAGE_MIMES)[number];
+      const b64 = m[2];
+      const pad = b64.endsWith('==') ? 2 : b64.endsWith('=') ? 1 : 0;
+      const bytes = Math.floor((b64.length * 3) / 4) - pad;
+      if (bytes > IMAGE_MAX_BYTES) return json(req, 413, { error: `사진이 너무 커요. ${Math.round(IMAGE_MAX_BYTES / 1000)}KB 이하로 줄여 주세요.` });
+      if (bytes < 64) return json(req, 400, { error: '사진을 읽지 못했어요. 다른 사진으로 다시 시도해 주세요.' });
+      const [row] = await db`
+        insert into carbonic_table.images (user_id, mime, bytes, data)
+        values (${member.user_id}, ${mime}, ${bytes}, ${b64})
+        returning id, bytes` as unknown as Row[];
+      const id = String(row.id);
+      return json(req, 201, { ok: true, id, path: `/images/${id}`, bytes: Number(row.bytes ?? bytes) });
+    }
 
     // 내 정보 등록·수정
     if (path === '/me' && req.method === 'POST') {
@@ -564,34 +724,67 @@ Deno.serve(async (req) => {
       return json(req, 200, { ok: true, deleted: member.user_id });
     }
 
-    // 실천 등록 — 지금 시즌에 적립
+    // 실천 등록 — 지금 시즌에 적립. 여러 미션을 한 번에, 같은 미션을 여러 번(수량)도 된다.
     if (path === '/activities' && req.method === 'POST') {
       const body = await readJson(req);
-      const missionId = idOf(body.mission_id);
       const doneOn = dayOf(body.done_on);
+      const imageUrl = imagePathOf(body.image_url);
       if (!member) return json(req, 400, { error: '먼저 이름과 구분을 등록해 주세요. (내 통장 → 회원 정보)', code: 'profile_required' });
+
+      // 요청 모양 두 가지를 모두 받는다
+      //   ① { items: [{ mission_id, count }, …] }  — 미션 여러 개, 같은 미션 여러 번
+      //   ② { mission_id, count? }                 — 예전 화면·간단한 등록
+      type Pick = { missionId: string; count: number };
+      const picks: Pick[] = [];
+      const rawItems = Array.isArray(body.items) ? body.items : [{ mission_id: body.mission_id, count: body.count }];
+      if (rawItems.length > 40) return json(req, 400, { error: '한 번에 40줄까지만 등록할 수 있어요.' });
+      for (const item of rawItems as Record<string, unknown>[]) {
+        const missionId = idOf(item?.mission_id);
+        const count = intOf(item?.count ?? 1, 1, 30);
+        if (count == null) return json(req, 400, { error: '수량은 1~30 사이로 골라 주세요.' });
+        picks.push({ missionId, count });
+      }
+      if (!picks.length) return json(req, 400, { error: '실천할 미션을 골라 주세요.' });
+      const totalRows = picks.reduce((n, p) => n + p.count, 0);
+      if (totalRows > 60) return json(req, 400, { error: '한 번에 60건까지만 등록할 수 있어요.' });
+
       const seasonId = await currentSeasonId();
+      const created: Row[] = [];
 
       const result = await db.begin(async (tx) => {
         // 같은 사람의 잔액을 건드리는 일은 회원 줄을 잠가 순서대로 처리한다
         const [m] = await tx`select user_id from carbonic_table.members where user_id = ${user!.id} for update` as unknown as Row[];
         if (!m) throw new HttpError(400, '먼저 이름과 구분을 등록해 주세요.');
-        const [mission] = await tx`
-          select id, name, air, active from carbonic_table.missions where id = ${missionId}` as unknown as Row[];
-        if (!mission) throw new HttpError(404, '그 미션을 찾지 못했어요.');
-        if (mission.active !== true) throw new HttpError(409, '지금은 쉬고 있는 미션이에요. 다른 미션을 골라 주세요.');
-        const [act] = await tx`
-          insert into carbonic_table.activities (user_id, mission_id, mission_name, air, done_on, season_id)
-          values (${user!.id}, ${Number(mission.id)}, ${String(mission.name)}, ${Number(mission.air)}, ${doneOn}, ${seasonId})
-          returning id, mission_name, air, to_char(done_on, 'YYYY-MM-DD') as done_on, created_at, season_id` as unknown as Row[];
-        return act;
+        for (const pick of picks) {
+          const [mission] = await tx`
+            select id, name, air, active from carbonic_table.missions where id = ${pick.missionId}` as unknown as Row[];
+          if (!mission) throw new HttpError(404, '그 미션을 찾지 못했어요.');
+          if (mission.active !== true) throw new HttpError(409, `‘${String(mission.name)}’ 미션은 지금 쉬고 있어요. 다른 미션을 골라 주세요.`);
+          for (let i = 0; i < pick.count; i += 1) {
+            const [act] = await tx`
+              insert into carbonic_table.activities (user_id, mission_id, mission_name, air, done_on, season_id, image_url)
+              values (${user!.id}, ${Number(mission.id)}, ${String(mission.name)}, ${Number(mission.air)}, ${doneOn}, ${seasonId}, ${imageUrl})
+              returning id, mission_name, air, to_char(done_on, 'YYYY-MM-DD') as done_on, created_at, season_id, image_url` as unknown as Row[];
+            created.push(act);
+          }
+        }
+        return created[0] ?? null;
       });
+      const airSum = created.reduce((n, r) => n + Number(r.air ?? 0), 0);
       return json(req, 201, {
         ok: true,
-        activity: {
+        count: created.length,
+        air: airSum,
+        image_url: imageUrl,
+        // 예전 화면을 위해 첫 건을 activity 로도 돌려준다
+        activity: result ? {
           id: String(result.id), mission: String(result.mission_name), air: Number(result.air),
           done_on: String(result.done_on), season_id: Number(result.season_id ?? 0),
-        },
+        } : null,
+        activities: created.map((r) => ({
+          id: String(r.id), mission: String(r.mission_name), air: Number(r.air),
+          done_on: String(r.done_on), season_id: Number(r.season_id ?? 0), image_url: String(r.image_url ?? ''),
+        })),
       });
     }
 
@@ -599,11 +792,12 @@ Deno.serve(async (req) => {
     if (parts[0] === 'activities' && parts[1] && !parts[2] && req.method === 'DELETE') {
       const id = idOf(parts[1]);
       const out = await db.begin(async (tx) => {
-        const [a] = await tx`select id, user_id from carbonic_table.activities where id = ${id} for update` as unknown as Row[];
+        const [a] = await tx`select id, user_id, image_url from carbonic_table.activities where id = ${id} for update` as unknown as Row[];
         if (!a) throw new HttpError(404, '그 기록을 찾지 못했어요.');
         if (String(a.user_id) !== user!.id && !isAdmin) throw new HttpError(403, '내 기록만 지울 수 있어요.');
         await tx`select user_id from carbonic_table.members where user_id = ${String(a.user_id)} for update`;
         await tx`delete from carbonic_table.activities where id = ${id}`;
+        await dropImageIfUnused(tx, String(a.image_url ?? ''));
         return { id: String(a.id) };
       });
       return json(req, 200, { ok: true, ...out });
@@ -678,12 +872,13 @@ Deno.serve(async (req) => {
       const title = clean(body.title, 80);
       const text = cleanText(body.body, 2000);
       const pinned = body.pinned === true;
+      const imageUrl = imagePathOf(body.image_url);
       if (!title) return json(req, 400, { error: '공지 제목을 적어 주세요.' });
       const byName = member?.name || clean(user!.email ?? '', 40) || '관리자';
       const [row] = await db`
-        insert into carbonic_table.notices (title, body, pinned, author_id, author_name)
-        values (${title}, ${text}, ${pinned}, ${user!.id}, ${byName})
-        returning id, title, body, pinned, author_name, created_at, updated_at` as unknown as Row[];
+        insert into carbonic_table.notices (title, body, pinned, author_id, author_name, image_url)
+        values (${title}, ${text}, ${pinned}, ${user!.id}, ${byName}, ${imageUrl})
+        returning id, title, body, pinned, author_name, created_at, updated_at, image_url` as unknown as Row[];
       return json(req, 201, { ok: true, notice: row });
     }
 
@@ -706,22 +901,32 @@ Deno.serve(async (req) => {
         if (typeof body.pinned !== 'boolean') return json(req, 400, { error: 'pinned 는 true/false 여야 합니다.' });
         values.push(body.pinned); patch.push(`pinned = $${values.length}`);
       }
+      if (body.image_url !== undefined) {
+        const imageUrl = imagePathOf(body.image_url);
+        values.push(imageUrl); patch.push(`image_url = $${values.length}`);
+      }
       if (!patch.length) return json(req, 400, { error: '바꿀 내용이 없습니다.' });
+      const [before] = await db`select image_url from carbonic_table.notices where id = ${id}` as unknown as Row[];
+      if (!before) return json(req, 404, { error: '그 공지를 찾지 못했어요.' });
       values.push(Number(id));
       const [row] = await db.unsafe(
         `update carbonic_table.notices set ${patch.join(', ')}, updated_at = now() where id = $${values.length}
-         returning id, title, body, pinned, author_name, created_at, updated_at`,
+         returning id, title, body, pinned, author_name, created_at, updated_at, image_url`,
         values as never[],
       ) as unknown as Row[];
       if (!row) return json(req, 404, { error: '그 공지를 찾지 못했어요.' });
+      if (String(before.image_url ?? '') && String(before.image_url) !== String(row.image_url ?? '')) {
+        await dropImageIfUnused(db, String(before.image_url));
+      }
       return json(req, 200, { ok: true, notice: row });
     }
 
     if (parts[0] === 'notices' && parts[1] && req.method === 'DELETE') {
       requireAdmin();
       const id = idOf(parts[1]);
-      const [row] = await db`delete from carbonic_table.notices where id = ${id} returning id` as unknown as Row[];
+      const [row] = await db`delete from carbonic_table.notices where id = ${id} returning id, image_url` as unknown as Row[];
       if (!row) return json(req, 404, { error: '그 공지를 찾지 못했어요.' });
+      await dropImageIfUnused(db, String(row.image_url ?? ''));
       return json(req, 200, { ok: true, deleted: id });
     }
 
@@ -740,6 +945,50 @@ Deno.serve(async (req) => {
         values (${name}, 'planned', ${note}, ${user!.id}, ${byName})
         returning id, name, status, note, created_at` as unknown as Row[];
       return json(req, 201, { ok: true, season: row });
+    }
+
+    // 지구 설정 — 시간당 탄소·완전히 붉어지는 탄소량·기준 시각 리셋 (관리자)
+    if (parts[0] === 'seasons' && parts[1] && parts[2] === 'earth' && req.method === 'POST') {
+      requireAdmin();
+      const id = idOf(parts[1]);
+      const body = await readJson(req);
+      const [s] = await db`select id, name from carbonic_table.seasons where id = ${id}` as unknown as Row[];
+      if (!s) return json(req, 404, { error: '그 시즌을 찾지 못했어요.' });
+      const patch: string[] = [];
+      const values: unknown[] = [];
+      if (body.carbon_per_hour !== undefined) {
+        const n = Number(body.carbon_per_hour);
+        if (!Number.isFinite(n) || n < 0 || n > 1000) return json(req, 400, { error: '시간당 탄소는 0~1000 사이 숫자로 적어 주세요.' });
+        values.push(Math.round(n * 100) / 100); patch.push(`carbon_per_hour = $${values.length}`);
+      }
+      if (body.carbon_capacity !== undefined) {
+        const n = Number(body.carbon_capacity);
+        if (!Number.isFinite(n) || n <= 0 || n > 100000) return json(req, 400, { error: '지구가 붉어지는 탄소량은 0보다 큰 숫자로 적어 주세요.' });
+        values.push(Math.round(n * 100) / 100); patch.push(`carbon_capacity = $${values.length}`);
+      }
+      if (body.reset === true) {
+        patch.push('earth_started_at = now()');
+      } else if (body.earth_started_at !== undefined) {
+        const t = Date.parse(String(body.earth_started_at));
+        if (!Number.isFinite(t)) return json(req, 400, { error: '기준 시각 형식이 올바르지 않습니다.' });
+        values.push(new Date(t).toISOString()); patch.push(`earth_started_at = $${values.length}`);
+      }
+      if (!patch.length) return json(req, 400, { error: '바꿀 내용이 없습니다.' });
+      values.push(Number(id));
+      const [row] = await db.unsafe(
+        `update carbonic_table.seasons set ${patch.join(', ')} where id = $${values.length}
+         returning id, name, status, carbon_per_hour, carbon_capacity, earth_started_at`,
+        values as never[],
+      ) as unknown as Row[];
+      return json(req, 200, {
+        ok: true,
+        season: {
+          id: String(row.id), name: String(row.name), status: String(row.status),
+          carbon_per_hour: Number(row.carbon_per_hour),
+          carbon_capacity: Number(row.carbon_capacity),
+          earth_started_at: row.earth_started_at,
+        },
+      });
     }
 
     if (parts[0] === 'seasons' && parts[1] && parts[2] === 'activate' && req.method === 'POST') {
@@ -856,16 +1105,17 @@ Deno.serve(async (req) => {
       const description = cleanText(body.description, 300);
       const startPrice = intOf(body.start_price, 1, 100000);
       const minStep = intOf(body.min_step, 1, 10000);
+      const imageUrl = imagePathOf(body.image_url);
       if (title.length < 1) return json(req, 400, { error: '물품 이름을 적어 주세요.' });
       if (startPrice == null) return json(req, 400, { error: '시작가를 1공기 이상으로 적어 주세요.' });
       if (minStep == null) return json(req, 400, { error: '최소 입찰 단위를 1공기 이상으로 적어 주세요.' });
       const seasonId = await currentSeasonId();
       const [row] = await db`
         insert into carbonic_table.auctions
-          (title, description, start_price, min_step, status, season_id, seller_id, seller_name, created_by, created_by_name)
+          (title, description, start_price, min_step, status, season_id, seller_id, seller_name, created_by, created_by_name, image_url)
         values (${title}, ${description}, ${startPrice}, ${minStep}, 'waiting', ${seasonId},
-                ${member.user_id}, ${member.name}, ${member.user_id}, ${member.name})
-        returning id, title, description, start_price, min_step, status, season_id, seller_name, created_at` as unknown as Row[];
+                ${member.user_id}, ${member.name}, ${member.user_id}, ${member.name}, ${imageUrl})
+        returning id, title, description, start_price, min_step, status, season_id, seller_name, created_at, image_url` as unknown as Row[];
       return json(req, 201, { ok: true, auction: row });
     }
 
@@ -891,8 +1141,12 @@ Deno.serve(async (req) => {
         if (s == null) return json(req, 400, { error: '최소 입찰 단위를 1공기 이상으로 적어 주세요.' });
         values.push(s); patch.push(`min_step = $${values.length}`);
       }
+      if (body.image_url !== undefined) {
+        const imageUrl = imagePathOf(body.image_url);
+        values.push(imageUrl); patch.push(`image_url = $${values.length}`);
+      }
       if (!patch.length) return json(req, 400, { error: '바꿀 내용이 없습니다.' });
-      const [a] = await db`select id, status, seller_id from carbonic_table.auctions where id = ${auctionId}` as unknown as Row[];
+      const [a] = await db`select id, status, seller_id, image_url from carbonic_table.auctions where id = ${auctionId}` as unknown as Row[];
       if (!a) return json(req, 404, { error: '그 경매를 찾지 못했어요.' });
       const mine = a.seller_id != null && String(a.seller_id) === user!.id;
       if (!isAdmin && !mine) return json(req, 403, { error: '등록한 본인이나 관리자만 고칠 수 있어요.' });
@@ -902,9 +1156,12 @@ Deno.serve(async (req) => {
       values.push(Number(auctionId));
       const [row] = await db.unsafe(
         `update carbonic_table.auctions set ${patch.join(', ')} where id = $${values.length}
-         returning id, title, description, start_price, min_step, status, season_id, seller_name`,
+         returning id, title, description, start_price, min_step, status, season_id, seller_name, image_url`,
         values as never[],
       ) as unknown as Row[];
+      if (String(a.image_url ?? '') && String(a.image_url) !== String(row.image_url ?? '')) {
+        await dropImageIfUnused(db, String(a.image_url));
+      }
       return json(req, 200, { ok: true, auction: row });
     }
 
@@ -1050,8 +1307,10 @@ Deno.serve(async (req) => {
         if (Number(c?.n ?? 0) > 0 && String(a.status) === 'open') {
           throw new HttpError(409, '진행 중인 경매는 먼저 취소한 뒤에 지울 수 있어요.');
         }
+        const [img] = await tx`select image_url from carbonic_table.auctions where id = ${auctionId}` as unknown as Row[];
         await tx`delete from carbonic_table.bids where auction_id = ${auctionId}`;
         await tx`delete from carbonic_table.auctions where id = ${auctionId}`;
+        await dropImageIfUnused(tx, String(img?.image_url ?? ''));
         return { deleted: auctionId };
       });
       return json(req, 200, { ok: true, ...out });
