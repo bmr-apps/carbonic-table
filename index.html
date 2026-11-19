@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>탄소로운 식탁 · BMR APPS</title>
 <meta name="description" content="탄소로운 식탁 — 별무리 사람들이 기후 실천으로 모은 공기를 기록하고, 그 공기로 물건을 나누는 플리마켓.">
-<meta name="theme-color" content="#0abbee">
+<meta name="theme-color" content="#0f3d2e">
 <meta name="robots" content="noindex">
 <link rel="icon" href="https://psupfmarnyxontorftio.supabase.co/functions/v1/hub-favicon?slug=carbonic-table">
 </head>
@@ -31,9 +31,10 @@
 
   <nav class="nav" id="nav" aria-label="화면 고르기">
     <button type="button" class="nav-item on" data-nav="home" aria-current="page">현황</button>
-    <button type="button" class="nav-item" data-nav="practices">실천 등록</button>
-    <button type="button" class="nav-item" data-nav="auctions">공기 경매</button>
-    <button type="button" class="nav-item" data-nav="missions" data-operator-only hidden>미션 관리</button>
+    <button type="button" class="nav-item" data-nav="practices">실천</button>
+    <button type="button" class="nav-item" data-nav="ranking">랭킹</button>
+    <button type="button" class="nav-item" data-nav="auctions">경매</button>
+    <button type="button" class="nav-item" data-nav="admin" aria-label="관리자" hidden><span aria-hidden="true">🛠️</span> 관리</button>
   </nav>
 
   <div class="top-right">
@@ -48,7 +49,15 @@
   </div>
 </header>
 
+<div class="season-strip" id="season-strip" hidden>
+  <span class="season-label" aria-hidden="true">🌿 시즌</span>
+  <select id="season-pick" aria-label="시즌 고르기"></select>
+  <span class="season-meta" id="season-meta"></span>
+  <span class="season-live" id="season-live" hidden>지난 시즌을 보고 있어요</span>
+</div>
+
 <div class="banner" id="banner" role="status" hidden></div>
+<div class="notice-rail" id="notice-rail" hidden></div>
 
 <main id="main" tabindex="-1">
   <div class="booting" id="booting">
@@ -75,7 +84,7 @@
       <span>이름</span>
       <input type="text" name="name" maxlength="20" placeholder="예: 조은길" autocomplete="name" required>
     </label>
-    <p class="hint">교사로 등록하면 미션·경매를 운영할 수 있어요.</p>
+    <p class="hint">관리자 권한은 관리자 탭에서 따로 줍니다. 구분은 랭킹·통계에 쓰여요.</p>
     <div class="modal-actions">
       <button type="button" class="btn ghost" data-close-dialog>취소</button>
       <button type="submit" class="btn primary">저장</button>

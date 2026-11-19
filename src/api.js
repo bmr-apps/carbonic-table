@@ -48,18 +48,32 @@ async function request(path, { method = 'GET', body } = {}) {
   return data;
 }
 
+const seg = (v) => encodeURIComponent(String(v));
+
 export const api = {
-  state: () => request('/state'),
+  state: (seasonId) => request(`/state${seasonId ? `?season=${seg(seasonId)}` : ''}`),
   saveProfile: (name, kind) => request('/me', { method: 'POST', body: { name, kind } }),
   addActivity: (mission_id, done_on) => request('/activities', { method: 'POST', body: { mission_id, done_on } }),
-  deleteActivity: (id) => request(`/activities/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  deleteActivity: (id) => request(`/activities/${seg(id)}`, { method: 'DELETE' }),
+  react: (id, emoji) => request(`/activities/${seg(id)}/reactions`, { method: 'POST', body: { emoji } }),
+  addComment: (id, body) => request(`/activities/${seg(id)}/comments`, { method: 'POST', body: { body } }),
+  deleteComment: (id) => request(`/comments/${seg(id)}`, { method: 'DELETE' }),
+  addNotice: (payload) => request('/notices', { method: 'POST', body: payload }),
+  patchNotice: (id, patch) => request(`/notices/${seg(id)}`, { method: 'PATCH', body: patch }),
+  deleteNotice: (id) => request(`/notices/${seg(id)}`, { method: 'DELETE' }),
+  addSeason: (name, note) => request('/seasons', { method: 'POST', body: { name, note } }),
+  activateSeason: (id) => request(`/seasons/${seg(id)}/activate`, { method: 'POST', body: {} }),
+  endSeason: (id) => request(`/seasons/${seg(id)}/end`, { method: 'POST', body: {} }),
   addMission: (name, air) => request('/missions', { method: 'POST', body: { name, air } }),
-  patchMission: (id, patch) => request(`/missions/${encodeURIComponent(id)}`, { method: 'PATCH', body: patch }),
-  deleteMission: (id) => request(`/missions/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  patchMission: (id, patch) => request(`/missions/${seg(id)}`, { method: 'PATCH', body: patch }),
+  deleteMission: (id) => request(`/missions/${seg(id)}`, { method: 'DELETE' }),
   addAuction: (payload) => request('/auctions', { method: 'POST', body: payload }),
-  bid: (id, amount) => request(`/auctions/${encodeURIComponent(id)}/bid`, { method: 'POST', body: { amount } }),
-  closeAuction: (id) => request(`/auctions/${encodeURIComponent(id)}/close`, { method: 'POST', body: {} }),
-  cancelAuction: (id) => request(`/auctions/${encodeURIComponent(id)}/cancel`, { method: 'POST', body: {} }),
-  deleteAuction: (id) => request(`/auctions/${encodeURIComponent(id)}`, { method: 'DELETE' }),
-  deleteMember: (userId) => request(`/members/${encodeURIComponent(userId)}`, { method: 'DELETE' }),
+  patchAuction: (id, patch) => request(`/auctions/${seg(id)}`, { method: 'PATCH', body: patch }),
+  startAuction: (id) => request(`/auctions/${seg(id)}/start`, { method: 'POST', body: {} }),
+  bid: (id, amount) => request(`/auctions/${seg(id)}/bid`, { method: 'POST', body: { amount } }),
+  closeAuction: (id) => request(`/auctions/${seg(id)}/close`, { method: 'POST', body: {} }),
+  cancelAuction: (id) => request(`/auctions/${seg(id)}/cancel`, { method: 'POST', body: {} }),
+  deleteAuction: (id) => request(`/auctions/${seg(id)}`, { method: 'DELETE' }),
+  patchMember: (userId, patch) => request(`/members/${seg(userId)}`, { method: 'PATCH', body: patch }),
+  deleteMember: (userId) => request(`/members/${seg(userId)}`, { method: 'DELETE' }),
 };

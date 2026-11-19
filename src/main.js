@@ -1,4 +1,4 @@
-// 탄소로운 식탁 · 화면 코드
+// 탄소로운 식탁 · 화면 코드 (v2 — 공지 · 시즌 · 랭킹 · 반응/댓글 · 경매 대기 · 관리자)
 // 구조: 서버 함수(/state)에서 한 벌을 받아 그리고, 모든 쓰기는 서버 함수로만 보냅니다.
 import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
 import './style.css';
@@ -13,6 +13,8 @@ const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 const KIND_ORDER = ['10학년', '11학년', '12학년', '교사'];
 const KIND_CLASS = { '10학년': 'k10', '11학년': 'k11', '12학년': 'k12', '교사': 'kteacher' };
 const KIND_CARD = { '10학년': 'k-10', '11학년': 'k-11', '12학년': 'k-12', '교사': 'k-teacher' };
+const KIND_ICON = { '10학년': 'leaf', '11학년': 'sprout', '12학년': 'tree', '교사': 'globe' };
+const REACTIONS = ['🌱', '👏', '💚', '🔥'];
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const nf = (n) => Number(n || 0).toLocaleString('ko-KR');
 const todayStr = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
@@ -32,13 +34,65 @@ const fmtTime = (iso) => {
   if (Number.isNaN(d.getTime())) return '';
   return d.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hour12: false });
 };
+const short = (s, n) => {
+  const t = String(s ?? '').replace(/\s+/g, ' ').trim();
+  return t.length > n ? t.slice(0, n - 1) + '…' : t;
+};
+const wcls = (p) => 'w' + Math.min(100, Math.max(0, Math.round((Number(p) || 0) / 5) * 5));
 const kindBadge = (kind) => (KIND_CLASS[kind] ? `<span class="badge ${KIND_CLASS[kind]}">${esc(kind)}</span>` : '');
+const seedBadge = (n) => (n >= 1 ? `<span class="badge soft">${n}공기</span>` : '<span class="badge soft">0공기</span>');
+
+// ---------- 인라인 SVG (외부 아이콘·CDN 없이 그린다) ----------
+const svg = (body, cls = 'ico') =>
+  `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${body}</svg>`;
+const ICONS = {
+  leaf: svg('<path d="M4 20C4 11 10 5 20 4c0 10-6 16-14 16z"/><path d="M6 18c3-5 7-8 12-10"/>'),
+  sprout: svg('<path d="M12 21v-8"/><path d="M12 14C8 14 5 11.6 5 8c4 0 7 2.4 7 6z"/><path d="M12 14c3.4 0 6-2.4 6-5.4-3.4 0-6 2.4-6 5.4z"/>'),
+  globe: svg('<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c3 3.6 3 14.4 0 18"/><path d="M12 3c-3 3.6-3 14.4 0 18"/>'),
+  bubble: svg('<circle cx="9" cy="14" r="5"/><circle cx="17.5" cy="7.5" r="3"/><path d="M6.5 12.5c.8-1.2 2-1.8 3.4-1.6"/>'),
+  tree: svg('<path d="M12 22v-5"/><path d="M12 3l6.5 9.5H15L19 18H5l4-5.5H5.5z"/>'),
+  seed: svg('<path d="M12 21c-3.6-2.4-6-5.4-6-8.6A4.4 4.4 0 0 1 12 9a4.4 4.4 0 0 1 6 3.4c0 3.2-2.4 6.2-6 8.6z"/><path d="M12 13.5v7"/>'),
+  medal: svg('<circle cx="12" cy="15" r="5"/><path d="M9 4.5L12 11l3-6.5"/>'),
+  chat: svg('<path d="M4 5.5h16V16H9l-5 3.5z"/>'),
+  pin: svg('<path d="M12 17v4"/><path d="M8 3h8l-1 6 4 3H5l4-3z"/>'),
+  tool: svg('<path d="M14.5 4.5a4 4 0 0 0-5.2 5.2L4 15v5h5l5.3-5.3a4 4 0 0 0 5.2-5.2l-2.8 2.8-2-2z"/>'),
+  calendar: svg('<rect x="3.5" y="5" width="17" height="15"/><path d="M3.5 10h17M8 3v4M16 3v4"/>'),
+  users: svg('<circle cx="9" cy="8" r="3.4"/><path d="M3.5 20c0-3.3 2.5-5.6 5.5-5.6s5.5 2.3 5.5 5.6"/><path d="M16 5.5a3 3 0 0 1 0 5.6M18 20c0-2.2-.7-4-2-5.2"/>'),
+  bulb: svg('<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9V16h7v-2.1A6 6 0 0 0 12 3z"/>'),
+};
+function icon(name, cls = 'ico') {
+  const s = ICONS[name];
+  return s ? s.replace('class="ico"', `class="${cls}"`) : '';
+}
+
+// ---------- 공기 정원(성장 단계) ----------
+const STAGES = [
+  { at: 0, name: '씨앗', icon: 'seed' },
+  { at: 10, name: '새싹', icon: 'sprout' },
+  { at: 50, name: '어린나무', icon: 'tree' },
+  { at: 100, name: '큰나무', icon: 'tree' },
+  { at: 300, name: '작은 숲', icon: 'globe' },
+];
+function growthOf(air) {
+  const a = Number(air) || 0;
+  let cur = STAGES[0];
+  let next = STAGES[1];
+  for (let i = 0; i < STAGES.length; i += 1) {
+    if (a >= STAGES[i].at) { cur = STAGES[i]; next = STAGES[i + 1] || null; }
+  }
+  const span = next ? next.at - cur.at : 1;
+  const pctToNext = next ? Math.min(100, Math.max(0, ((a - cur.at) / span) * 100)) : 100;
+  return { cur, next, pctToNext, trees: Math.round((a / 100) * 10) / 10 };
+}
+
 const emptyData = () => ({
   server_time: null,
   me: null,
-  summary: { total_air: 0, activity_count: 0, participants: 0, member_count: 0 },
-  by_kind: KIND_ORDER.map((kind) => ({ kind, air: 0, count: 0, members: 0 })),
-  members: [], activities: [], missions: [], auctions: [],
+  season: null,
+  seasons: [],
+  summary: { total_air: 0, activity_count: 0, participants: 0, member_count: 0, comment_count: 0, reaction_count: 0 },
+  by_kind: KIND_ORDER.map((kind) => ({ kind, air: 0, count: 0, members: 0, people: 0 })),
+  members: [], activities: [], missions: [], notices: [], auctions: [],
 });
 
 const state = {
@@ -47,16 +101,25 @@ const state = {
   loading: true,
   error: null,
   view: 'home',
+  seasonId: null,          // null = 지금 시즌
   missionQuery: '',
   airFilter: 'all',
   picked: null,
   day: todayStr(),
   memberQuery: '',
   memberSort: 'earned',
+  adminTab: 'notice',
+  missionAdminQuery: '',
+  openComments: {},        // { [activityId]: true }
+  lotForm: null,           // null | 'new' | 경매 id
+  editNotice: null,        // 공지 수정 중인 id
+  editSeason: null,
 };
 
 const d = () => state.data || emptyData();
 const meOf = () => d().me;
+const seasonOf = () => d().season;
+const isAdmin = () => Boolean(d().me?.is_admin);
 
 // ---------- 알림 · 확인 ----------
 let toastTimer = 0;
@@ -105,8 +168,10 @@ function openProfileDialog() {
 async function load({ quiet = false } = {}) {
   if (!quiet) { state.loading = true; render(); }
   try {
-    state.data = await api.state();
+    state.data = await api.state(state.seasonId);
     state.error = null;
+    // 서버가 고른 시즌(없으면 지금 시즌)에 맞춘다
+    if (state.data?.season?.id && state.seasonId && state.data.season.id !== state.seasonId) state.seasonId = state.data.season.id;
   } catch (e) {
     state.error = e;
   } finally {
@@ -128,11 +193,13 @@ function explainError(e) {
 // ---------- 화면 그리기 ----------
 function render() {
   const me = meOf();
-  if (state.view === 'missions' && !me?.is_operator) state.view = 'home';
+  if (state.view === 'admin' && !me?.is_admin) state.view = 'home';
   document.body.dataset.view = state.view;
   renderHeader();
   renderNav();
+  renderSeasonStrip();
   renderBanner();
+  renderNoticeRail();
   const main = $('#main');
   if (state.loading && !state.data) {
     main.innerHTML = '<div class="booting"><span class="spin" aria-hidden="true"></span> 실천 통장을 펼치는 중…</div>';
@@ -140,8 +207,9 @@ function render() {
   }
   main.innerHTML = state.view === 'practices' ? practicesView()
     : state.view === 'auctions' ? auctionsView()
-      : state.view === 'missions' ? missionsView()
-        : homeView();
+      : state.view === 'ranking' ? rankingView()
+        : state.view === 'admin' ? adminView()
+          : homeView();
 }
 
 function renderHeader() {
@@ -150,20 +218,41 @@ function renderHeader() {
   $('#logout').hidden = !state.user;
   const who = $('#who');
   who.hidden = !state.user;
-  who.textContent = state.user ? (me?.registered ? `${me.name} · ${me.kind}` : (state.user.email || '로그인됨')) : '';
+  who.textContent = state.user
+    ? (me?.registered ? `${me.name} · ${me.kind}${me.is_admin ? ' · 관리자' : ''}` : (state.user.email || '로그인됨'))
+    : '';
   who.title = state.user?.email || '';
 }
 
 function renderNav() {
-  const me = meOf();
-  const op = Boolean(me?.is_operator);
+  const admin = Boolean(meOf()?.is_admin);
   $$('#nav .nav-item').forEach((b) => {
     const view = b.dataset.nav;
-    if (view === 'missions') b.hidden = !op;
+    if (view === 'admin') b.hidden = !admin;
     const on = view === state.view;
     b.classList.toggle('on', on);
     if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
   });
+}
+
+function renderSeasonStrip() {
+  const el = $('#season-strip');
+  if (!el) return;
+  const list = d().seasons || [];
+  const cur = seasonOf();
+  el.hidden = !list.length;
+  const pick = $('#season-pick');
+  if (pick) {
+    pick.innerHTML = list.slice().reverse().map((s) => {
+      const tag = s.status === 'active' ? ' · 진행 중' : s.status === 'ended' ? ' · 지난 시즌' : ' · 예정';
+      return `<option value="${s.id}"${cur && cur.id === s.id ? ' selected' : ''}>${esc(s.name)}${tag}</option>`;
+    }).join('');
+  }
+  const meta = $('#season-meta');
+  if (meta) meta.textContent = cur ? `${nf(cur.air)}공기 · 실천 ${nf(cur.count)}건 · ${nf(cur.people)}명 참여` : '';
+  const live = $('#season-live');
+  if (live) live.hidden = !cur || cur.status === 'active' || cur.is_current === true;
+  el.dataset.state = cur ? cur.status : '';
 }
 
 function renderBanner() {
@@ -179,6 +268,45 @@ function renderBanner() {
   el.innerHTML = '';
 }
 
+function renderNoticeRail() {
+  const el = $('#notice-rail');
+  if (!el) return;
+  const pinned = (d().notices || []).filter((n) => n.pinned);
+  const show = pinned.length && state.view !== 'home';
+  el.hidden = !show;
+  if (!show) { el.innerHTML = ''; return; }
+  el.innerHTML = pinned.slice(0, 3).map((n) => `
+    <div class="rail-item">
+      <span class="rail-pin" aria-hidden="true">📌</span>
+      <b>${esc(n.title)}</b>
+      ${n.body ? `<span>${esc(short(n.body, 110))}</span>` : ''}
+    </div>`).join('');
+}
+
+// ---------- 공지 (공통 조각) ----------
+function noticesSection() {
+  const list = d().notices || [];
+  if (!list.length) return '';
+  return `<section class="section" aria-labelledby="notice-title">
+    <div class="section-head">
+      <h2 id="notice-title">${icon('bulb', 'ico lg')} 공지</h2>
+      <span class="eyebrow">${nf(list.length)}개</span>
+    </div>
+    <div class="notice-list">${list.map((n) => noticeCard(n)).join('')}</div>
+  </section>`;
+}
+
+function noticeCard(n) {
+  return `<article class="notice ${n.pinned ? 'pinned' : ''}">
+    <header>
+      ${n.pinned ? '<span class="badge pin">📌 고정</span>' : ''}
+      <h3>${esc(n.title)}</h3>
+      <span class="notice-when">${fmtWhen(n.created_at)} · ${esc(n.author_name || '관리자')}</span>
+    </header>
+    ${n.body ? `<p class="notice-body">${esc(n.body)}</p>` : ''}
+  </article>`;
+}
+
 // ---------- 현황 ----------
 function homeView() {
   const data = d();
@@ -188,6 +316,8 @@ function homeView() {
   const participants = data.summary.participants || 0;
   const activityCount = data.summary.activity_count || 0;
   const maxKind = Math.max(1, ...data.by_kind.map((k) => k.air || 0));
+  const season = seasonOf();
+  const g = growthOf(total);
 
   return `<div class="wrap">
     <section class="hero" aria-labelledby="hero-title">
@@ -198,10 +328,15 @@ function homeView() {
           <span class="unit">공기의 실천!</span>
         </h1>
         <p>작은 실천 하나가 공기 한 줌이 됩니다. 별무리 사람들이 함께 모은 공기를 한눈에 보고, 모은 공기로 플리마켓 물건을 나눠요.</p>
+        <div class="hero-season">
+          <span class="season-chip">${icon('leaf', 'ico sm')} ${esc(season?.name || '시즌 준비 중')}</span>
+          ${season && season.status !== 'active' ? '<span class="season-chip off">지난 시즌을 보는 중</span>' : ''}
+        </div>
         <div class="hero-actions">
           <button type="button" class="btn primary" data-action="go" data-view="practices">＋ 실천 등록하기</button>
           <button type="button" class="btn" data-action="go" data-view="auctions">공기 경매 보기</button>
         </div>
+        <div class="bubbles" aria-hidden="true">${icon('bubble', 'ico bub a')}${icon('bubble', 'ico bub b')}${icon('bubble', 'ico bub c')}</div>
       </div>
       <div class="hero-stats">
         <div class="hero-stat"><small>함께한 사람</small><b>${nf(participants)}명</b></div>
@@ -210,17 +345,47 @@ function homeView() {
       </div>
     </section>
 
+    <section class="eco-band" aria-label="공기 정원과 나무 환산">
+      <div class="eco-card grow">
+        <div class="eco-head">
+          <span class="eco-ico">${icon(g.cur.icon, 'ico big')}</span>
+          <div>
+            <small>이번 시즌 공기 정원</small>
+            <b>${esc(g.cur.name)} 단계</b>
+          </div>
+          <span class="badge green">${nf(total)}공기</span>
+        </div>
+        <div class="bar eco-bar" role="img" aria-label="다음 단계까지 ${g.pctToNext}%">
+          <i class="${wcls(g.pctToNext)}"></i>
+        </div>
+        <p class="hint">${g.next ? `다음 <b>${esc(g.next.name)}</b>까지 <b>${nf(Math.max(0, g.next.at - total))}공기</b> 남았어요.` : '작은 숲을 이루었어요! 🎉'}</p>
+      </div>
+      <div class="eco-card trees">
+        <div class="eco-head">
+          <span class="eco-ico">${icon('tree', 'ico big')}</span>
+          <div>
+            <small>나무 환산</small>
+            <b>${nf(g.trees)}그루</b>
+          </div>
+        </div>
+        <div class="tree-row" aria-hidden="true">${treeRow(total)}</div>
+        <p class="hint">이야기용 환산이에요 — 공기 100을 나무 한 그루로 봐요.</p>
+      </div>
+    </section>
+
     <section class="kind-grid" aria-label="학년·구분별 합계">
       ${data.by_kind.map((k) => `
         <article class="kind-card ${KIND_CARD[k.kind] || ''}">
-          <header><span>${esc(k.kind)}</span><span>${nf(k.members)}명</span></header>
+          <header><span>${icon(KIND_ICON[k.kind] || 'leaf', 'ico sm')} ${esc(k.kind)}</span><span>${nf(k.members)}명</span></header>
           <div class="kind-body">
             <div class="kind-air"><b>${nf(k.air)}</b><small>공기</small></div>
-            <div class="bar" role="img" aria-label="${esc(k.kind)} ${nf(k.air)}공기"><i class="w${Math.min(100, Math.max(0, Math.round(((k.air / maxKind) * 100) / 5) * 5))}"></i></div>
+            <div class="bar" role="img" aria-label="${esc(k.kind)} ${nf(k.air)}공기"><i class="${wcls((k.air / maxKind) * 100)}"></i></div>
             <div class="kind-meta"><span>실천 ${nf(k.count)}건</span><span>${total ? Math.round((k.air / total) * 100) : 0}%</span></div>
           </div>
         </article>`).join('')}
     </section>
+
+    ${noticesSection()}
 
     <section class="cols">
       <div class="card">${ledgerCard(me)}</div>
@@ -231,10 +396,12 @@ function homeView() {
       </div>
     </section>
 
+    ${rankPreview()}
+
     <section class="section" aria-labelledby="members-title">
       <div class="section-head">
         <h2 id="members-title">회원별 합산 현황</h2>
-        <span class="eyebrow">모두 함께 보기</span>
+        <span class="eyebrow">${esc(season?.name || '')} · 모두 함께 보기</span>
       </div>
       ${membersTools()}
       <div class="table-scroll">
@@ -250,16 +417,23 @@ function homeView() {
           <tbody id="member-rows">${memberRowsHtml()}</tbody>
         </table>
       </div>
-      <p class="hint mt8">남은 공기 = 총 적립 − 낙찰 확정 − 진행 중 경매에서 내가 최고 입찰자로 묶인 공기</p>
+      <p class="hint mt8">남은 공기 = 총 적립 − 낙찰 확정 − 진행 중 경매에서 내가 최고 입찰자로 묶인 공기 (모두 이번 시즌 기준)</p>
     </section>
   </div>`;
+}
+
+function treeRow(air) {
+  const trees = Math.min(8, Math.floor((Number(air) || 0) / 100));
+  if (!trees) return `<span class="sapling">${icon('sprout', 'ico big')}</span><span class="hint">아직 새싹 — 100공기를 모으면 나무 한 그루!</span>`;
+  return Array.from({ length: trees }).map(() => `<span class="tree">${icon('tree', 'ico')}</span>`).join('')
+    + (trees === 8 ? '<span class="hint">8그루+</span>' : '');
 }
 
 function ledgerCard(me) {
   if (!state.user) {
     return `<div class="card-head"><h2>내 통장</h2></div>
       <div class="guest-cta">
-        <p>구글 로그인하고 내 공기를 모아 보세요. 로그인하지 않아도 아래 현황과 경매는 모두 볼 수 있어요.</p>
+        <p>구글 로그인하고 내 공기를 모아 보세요. 로그인하지 않아도 아래 현황·공지·경매는 모두 볼 수 있어요.</p>
         <button type="button" class="btn google" data-action="login"><span class="g" aria-hidden="true">G</span> 구글 로그인</button>
       </div>`;
   }
@@ -270,7 +444,9 @@ function ledgerCard(me) {
         <button type="button" class="btn primary" data-action="open-profile">회원 정보 등록하기</button>
       </div>`;
   }
+  const g = growthOf(me.earned);
   return `<div class="card-head"><h2>${esc(me.name)}님의 통장</h2><span class="badge ${KIND_CLASS[me.kind] || ''}">${esc(me.kind)}</span>
+      ${me.is_admin ? '<span class="badge green">관리자</span>' : ''}
       <div class="right"><button type="button" class="btn sm ghost" data-action="open-profile">정보 수정</button></div></div>
     <div class="tiles">
       <div class="tile"><small>총 적립</small><b>${nf(me.earned)}<span class="u">공기</span></b></div>
@@ -278,25 +454,43 @@ function ledgerCard(me) {
       <div class="tile warn"><small>경매 예약</small><b>${nf(me.reserved)}<span class="u">공기</span></b></div>
       <div class="tile hot"><small>남은 공기</small><b>${nf(me.available)}<span class="u">공기</span></b></div>
     </div>
+    <div class="ledger-grow">
+      <span class="eco-ico">${icon(g.cur.icon, 'ico')}</span>
+      <span class="grow-txt"><b>${esc(g.cur.name)}</b> · 실천 ${nf(me.acts)}회</span>
+      <span class="badge green">${me.rank ? `${nf(me.rank)}위 (${nf(d().members.length)}명)` : ''}</span>
+    </div>
     <p class="ledger-note">지금 <b>${nf(me.available)}공기</b>로 입찰할 수 있어요.</p>
     <div class="form-actions mt10">
       <button type="button" class="btn primary" data-action="go" data-view="practices">＋ 실천 등록</button>
-      <button type="button" class="btn ghost" data-action="go" data-view="auctions">경매 보기</button>
+      <button type="button" class="btn ghost" data-action="go" data-view="ranking">랭킹 보기</button>
     </div>`;
 }
 
-function feedHtml(list) {
-  if (!list.length) {
-    return `<div class="empty"><b>아직 첫 실천이 없어요.</b>첫 공기를 모아 볼까요?</div>`;
-  }
-  return `<ul class="feed">${list.map((a) => `
-    <li>
-      ${kindBadge(a.kind)}
-      <span class="who-name">${esc(a.name || '회원')}</span>
-      <span class="air">+${nf(a.air)}</span>
-      <span class="what">${esc(a.mission)}</span>
-      <span class="when">${fmtDay(a.done_on)} 실천 · ${fmtTime(a.created_at)} 등록</span>
-    </li>`).join('')}</ul>`;
+function rankPreview() {
+  const list = d().members.filter((m) => m.earned > 0 || m.acts > 0).slice(0, 3);
+  if (!list.length) return '';
+  return `<section class="section" aria-labelledby="rank-preview-title">
+    <div class="section-head">
+      <h2 id="rank-preview-title">이번 시즌 랭킹 TOP 3</h2>
+      <span class="eyebrow">공기를 가장 많이 모은 사람</span>
+      <button type="button" class="btn sm ghost" data-action="go" data-view="ranking">전체 랭킹 →</button>
+    </div>
+    <div class="podium small-podium">
+      ${list.map((m, i) => podiumCard(m, i + 1)).join('')}
+    </div>
+  </section>`;
+}
+
+function podiumCard(m, rank) {
+  const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉';
+  const mine = meOf()?.user_id === m.user_id;
+  return `<article class="podium-card p${rank} ${mine ? 'mine' : ''}">
+    <div class="podium-top"><span class="medal" aria-hidden="true">${medal}</span><span class="rank-no">${rank}위</span></div>
+    <div class="podium-name">${esc(m.name)} ${mine ? '<span class="badge soft">나</span>' : ''}</div>
+    <div class="podium-kind">${kindBadge(m.kind)}</div>
+    <div class="podium-air"><b>${nf(m.earned)}</b><small>공기</small></div>
+    <div class="podium-sub">실천 ${nf(m.acts)}회 · 남은 ${nf(m.available)}공기</div>
+  </article>`;
 }
 
 function membersTools() {
@@ -305,6 +499,7 @@ function membersTools() {
     <select id="member-sort" aria-label="정렬">
       <option value="earned"${state.memberSort === 'earned' ? ' selected' : ''}>적립 많은 순</option>
       <option value="available"${state.memberSort === 'available' ? ' selected' : ''}>남은 공기 많은 순</option>
+      <option value="acts"${state.memberSort === 'acts' ? ' selected' : ''}>실천 많은 순</option>
       <option value="name"${state.memberSort === 'name' ? ' selected' : ''}>이름 순</option>
       <option value="kind"${state.memberSort === 'kind' ? ' selected' : ''}>구분 순</option>
     </select>
@@ -319,6 +514,7 @@ function memberRowsHtml() {
   rows = rows.slice().sort((a, b) => {
     if (sort === 'name') return a.name.localeCompare(b.name, 'ko');
     if (sort === 'available') return b.available - a.available || b.earned - a.earned;
+    if (sort === 'acts') return b.acts - a.acts || b.earned - a.earned;
     if (sort === 'kind') return KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) || b.earned - a.earned;
     return b.earned - a.earned || a.name.localeCompare(b.name, 'ko');
   });
@@ -329,7 +525,7 @@ function memberRowsHtml() {
     const isMe = me?.registered && m.user_id === me.user_id;
     return `<tr class="${isMe ? 'me' : ''}">
       <td>${kindBadge(m.kind)}</td>
-      <td class="name">${esc(m.name)}${isMe ? ' <span class="badge soft">나</span>' : ''}</td>
+      <td class="name">${esc(m.name)}${isMe ? ' <span class="badge soft">나</span>' : ''}${m.is_admin ? ' <span class="badge green">관리자</span>' : ''}</td>
       <td class="num">${nf(m.earned)}</td>
       <td class="num">${nf(m.spent)}</td>
       <td class="num">${nf(m.reserved)}</td>
@@ -337,6 +533,60 @@ function memberRowsHtml() {
       <td>${m.last_at ? fmtWhen(m.last_at) : '<span class="muted">—</span>'}</td>
     </tr>`;
   }).join('');
+}
+
+// ---------- 실천 피드 (반응·댓글) ----------
+function feedHtml(list) {
+  if (!list.length) {
+    return `<div class="empty"><b>아직 첫 실천이 없어요.</b>첫 공기를 모아 볼까요?</div>`;
+  }
+  return `<ul class="feed">${list.map((a) => feedItem(a)).join('')}</ul>`;
+}
+
+function feedItem(a) {
+  const me = meOf();
+  const mine = Boolean(me?.registered && me.user_id === a.user_id);
+  const open = Boolean(state.openComments[a.id]);
+  return `<li class="feed-item">
+    <div class="feed-head">
+      ${kindBadge(a.kind)}
+      <span class="who-name">${esc(a.name || '회원')}</span>
+      <span class="air">+${nf(a.air)}</span>
+      <span class="what">${esc(a.mission)}</span>
+      <span class="when">${fmtDay(a.done_on)} 실천 · ${fmtTime(a.created_at)} 등록</span>
+    </div>
+    <div class="feed-acts">
+      ${(a.reactions || []).map((r) => `
+        <button type="button" class="react ${r.mine ? 'on' : ''}" data-action="react" data-id="${esc(a.id)}" data-emoji="${r.emoji}"
+          aria-pressed="${r.mine ? 'true' : 'false'}" aria-label="${r.emoji} 반응 ${nf(r.n)}개">${r.emoji}<b>${r.n ? nf(r.n) : ''}</b></button>`).join('')}
+      <button type="button" class="react cmt ${open ? 'on' : ''}" data-action="toggle-comments" data-id="${esc(a.id)}"
+        aria-expanded="${open ? 'true' : 'false'}" aria-label="댓글 ${nf(a.comment_count)}개 보기">${icon('chat', 'ico sm')}<b>${a.comment_count ? nf(a.comment_count) : ''}</b></button>
+      ${mine || me?.is_admin ? `<button type="button" class="btn tiny ghost push" data-action="delete-activity" data-id="${esc(a.id)}">기록 지우기</button>` : ''}
+    </div>
+    ${open ? commentBox(a) : ''}
+  </li>`;
+}
+
+function commentBox(a) {
+  const me = meOf();
+  const canWrite = Boolean(me?.registered);
+  return `<div class="comments">
+    ${a.comments?.length ? `<ul>${a.comments.map((c) => `
+      <li>
+        <span class="c-who">${esc(c.name || '회원')}</span>
+        <span class="c-body">${esc(c.body)}</span>
+        <span class="c-when">${fmtWhen(c.created_at)}</span>
+        ${(me && (me.user_id === c.user_id || me.is_admin)) ? `<button type="button" class="btn tiny ghost" data-action="delete-comment" data-id="${esc(c.id)}" data-activity="${esc(a.id)}" aria-label="댓글 삭제">삭제</button>` : ''}
+      </li>`).join('')}</ul>` : `<p class="hint">아직 댓글이 없어요. 첫 댓글을 남겨 보세요.</p>`}
+    ${state.user
+      ? (canWrite
+        ? `<form class="comment-form" data-action="comment" data-id="${esc(a.id)}">
+            <input type="text" name="body" maxlength="500" placeholder="따뜻한 한마디 (500자까지)" required aria-label="댓글 내용">
+            <button type="submit" class="btn sm primary">댓글</button>
+          </form>`
+        : '<p class="hint">회원 정보를 등록하면 댓글을 남길 수 있어요.</p>')
+      : '<button type="button" class="btn sm ghost" data-action="login"><span class="g" aria-hidden="true">G</span> 로그인하고 댓글 쓰기</button>'}
+  </div>`;
 }
 
 // ---------- 실천 등록 ----------
@@ -348,7 +598,7 @@ function practicesView() {
       <h1>로그인하고 공기를 모아요</h1>
       <p>실천을 기록하려면 BMR APPS 계정으로 로그인해 주세요. 구글 계정이면 바로 들어올 수 있어요.</p>
       <div class="form-actions"><button type="button" class="btn google" data-action="login"><span class="g" aria-hidden="true">G</span> 구글 로그인</button></div>
-      <p class="hint">로그인하지 않아도 현황과 경매는 볼 수 있어요.</p>
+      <p class="hint">로그인하지 않아도 현황·공지·경매는 볼 수 있어요.</p>
     </section></div>`;
   }
   if (!me?.registered) {
@@ -362,11 +612,17 @@ function practicesView() {
 
   const picked = d().missions.find((m) => m.id === state.picked) || null;
   const mine = d().activities.filter((a) => a.user_id === me.user_id);
+  const season = seasonOf();
+  const g = growthOf(me.earned);
 
   return `<div class="wrap">
     <div class="section-head">
       <h2>실천 등록</h2>
       <span class="eyebrow">${esc(me.name)} · ${esc(me.kind)} · 남은 ${nf(me.available)}공기</span>
+    </div>
+    <div class="season-note">
+      <span>${icon('leaf', 'ico sm')} <b>${esc(season?.name || '이번 시즌')}</b>에 기록돼요.</span>
+      <span class="hint">${esc(g.cur.name)} 단계 · 실천 ${nf(me.acts)}회 · 이번 시즌 적립 ${nf(me.earned)}공기</span>
     </div>
     <div class="picker">
       <section class="card mission-panel" aria-labelledby="missions-label">
@@ -425,50 +681,177 @@ function missionListHtml() {
     </button>`).join('');
 }
 
+// ---------- 랭킹 ----------
+function rankingView() {
+  const data = d();
+  const season = seasonOf();
+  const me = data.me;
+  const list = data.members.slice().sort((a, b) => b.earned - a.earned || b.acts - a.acts || a.name.localeCompare(b.name, 'ko'));
+  const top = list.slice(0, 3);
+  const kindMax = Math.max(1, ...data.by_kind.map((k) => k.air || 0));
+  const kindRank = data.by_kind.slice().sort((a, b) => b.air - a.air).map((k) => k.kind);
+  const myIdx = me?.registered ? list.findIndex((m) => m.user_id === me.user_id) : -1;
+
+  return `<div class="wrap">
+    <div class="section-head">
+      <h2>${icon('medal', 'ico lg')} 이번 시즌 랭킹</h2>
+      <span class="eyebrow">${esc(season?.name || '')}</span>
+    </div>
+    <p class="hint mb16">실천으로 모은 공기 순위예요. 시즌이 바뀌면 새로 시작합니다. 실천 횟수는 함께 세요.</p>
+
+    ${top.length ? `<div class="podium">${top.map((m, i) => podiumCard(m, i + 1)).join('')}</div>`
+      : `<div class="empty"><b>아직 랭킹이 비어 있어요.</b>첫 실천을 기록하면 여기에 이름이 올라요.</div>`}
+
+    ${me?.registered ? `<div class="my-rank card">
+      <div class="my-rank-head">
+        <span class="eco-ico">${icon('leaf', 'ico')}</span>
+        <b>${esc(me.name)}님</b>
+        ${kindBadge(me.kind)}
+        ${me.is_admin ? '<span class="badge green">관리자</span>' : ''}
+      </div>
+      <div class="my-rank-body">
+        <div><small>순위</small><b>${myIdx >= 0 ? `${nf(myIdx + 1)}<span class="u">/${nf(list.length)}</span>` : '—'}</b></div>
+        <div><small>총 적립</small><b>${nf(me.earned)}<span class="u">공기</span></b></div>
+        <div><small>실천</small><b>${nf(me.acts)}<span class="u">회</span></b></div>
+        <div><small>남은 공기</small><b>${nf(me.available)}<span class="u">공기</span></b></div>
+      </div>
+    </div>` : ''}
+
+    <section class="section" aria-labelledby="rank-all">
+      <div class="section-head"><h2 id="rank-all">개인 랭킹 보드</h2><span class="eyebrow">${nf(list.length)}명</span></div>
+      <div class="table-scroll">
+        <table class="board rank-board">
+          <thead>
+            <tr>
+              <th scope="col" class="num">순위</th><th scope="col">이름</th><th scope="col">구분</th>
+              <th scope="col" class="num">총 적립</th><th scope="col" class="num">실천 횟수</th>
+              <th scope="col" class="num">남은 공기</th><th scope="col">성장</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${list.length ? list.map((m, i) => {
+              const rank = i + 1;
+              const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
+              const g = growthOf(m.earned);
+              const isMe = me?.registered && me.user_id === m.user_id;
+              return `<tr class="${isMe ? 'me' : ''} ${rank <= 3 ? 'top' + rank : ''}">
+                <td class="num rank-cell">${medal ? `<span class="medal" aria-hidden="true">${medal}</span>` : ''}<b>${nf(rank)}</b></td>
+                <td class="name">${esc(m.name)}${isMe ? ' <span class="badge soft">나</span>' : ''}${m.is_admin ? ' <span class="badge green">관리자</span>' : ''}</td>
+                <td>${kindBadge(m.kind)}</td>
+                <td class="num air-strong">${nf(m.earned)}</td>
+                <td class="num">${nf(m.acts)}회</td>
+                <td class="num">${nf(m.available)}</td>
+                <td><span class="grow-pill">${icon(g.cur.icon, 'ico sm')} ${esc(g.cur.name)}</span></td>
+              </tr>`;
+            }).join('') : '<tr><td colspan="7" class="muted empty-cell">아직 회원이 없어요.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="rank-kind">
+      <div class="section-head"><h2 id="rank-kind">학년·구분별 비교</h2><span class="eyebrow">이번 시즌</span></div>
+      <div class="kind-grid">
+        ${data.by_kind.map((k) => {
+          const place = kindRank.indexOf(k.kind) + 1;
+          const per = k.people ? Math.round((k.air / k.people) * 10) / 10 : 0;
+          return `<article class="kind-card ${KIND_CARD[k.kind] || ''}">
+            <header>
+              <span>${icon(KIND_ICON[k.kind] || 'leaf', 'ico sm')} ${esc(k.kind)}</span>
+              <span class="kind-place">${place}위</span>
+            </header>
+            <div class="kind-body">
+              <div class="kind-air"><b>${nf(k.air)}</b><small>공기</small></div>
+              <div class="bar" role="img" aria-label="${esc(k.kind)} ${nf(k.air)}공기"><i class="${wcls((k.air / kindMax) * 100)}"></i></div>
+              <div class="kind-meta"><span>실천 ${nf(k.count)}건</span><span>1인 ${nf(per)}공기</span></div>
+              <div class="kind-meta"><span>참여 ${nf(k.people)}명</span><span>회원 ${nf(k.members)}명</span></div>
+            </div>
+          </article>`;
+        }).join('')}
+      </div>
+    </section>
+  </div>`;
+}
+
 // ---------- 공기 경매 ----------
 function auctionsView() {
   const data = d();
   const me = data.me;
-  const op = Boolean(me?.is_operator);
+  const admin = Boolean(me?.is_admin);
+  const season = seasonOf();
   const open = data.auctions.filter((a) => a.status === 'open');
+  const waiting = data.auctions.filter((a) => a.status === 'waiting');
   const closed = data.auctions.filter((a) => a.status === 'closed');
   const canceled = data.auctions.filter((a) => a.status === 'canceled');
+  const canSell = Boolean(me?.registered);
+  const showForm = state.lotForm !== null;
 
   return `<div class="wrap">
     <div class="section-head">
-      <h2>공기 경매 · 플리마켓</h2>
-      <span class="eyebrow">모은 공기로 물건 나누기</span>
+      <h2>${icon('leaf', 'ico lg')} 공기 경매 · 플리마켓</h2>
+      <span class="eyebrow">${esc(season?.name || '')} · 모은 공기로 물건 나누기</span>
     </div>
     <div class="op-bar">
-      <p class="hint">입찰하는 순간 그 공기는 경매가 끝날 때까지 묶여요. 다른 사람이 더 높게 부르면 바로 풀립니다.</p>
+      <p class="hint">입찰하는 순간 그 공기는 경매가 끝날 때까지 묶여요. 다른 사람이 더 높게 부르면 바로 풀립니다. 물품은 먼저 <b>대기</b>로 올라가고, 관리자가 <b>경매 시작</b>을 누르면 입찰할 수 있어요.</p>
       <div class="form-actions">
         <button type="button" class="btn sm ghost" data-action="refresh">↻ 새로고침</button>
-        ${op ? `<button type="button" class="btn sm primary" data-action="toggle-auction-form">＋ 경매 올리기</button>` : ''}
+        ${canSell ? `<button type="button" class="btn sm primary" data-action="new-lot">${showForm ? '등록 닫기' : '＋ 물품 등록'}</button>` : ''}
       </div>
     </div>
-    ${op ? auctionForm() : ''}
-    ${open.length ? `<div class="auctions">${open.map((a) => auctionCard(a)).join('')}</div>`
-      : `<div class="empty"><b>지금 열린 경매가 없어요.</b>${op ? '운영자라면 위에서 새 경매를 올릴 수 있어요.' : '새 물건이 올라오면 여기에서 입찰할 수 있어요.'}</div>`}
-    ${closed.length ? `<section class="section"><div class="section-head"><h2>지난 경매 결과</h2><span class="eyebrow">${nf(closed.length)}건</span></div>
-      <div class="auctions">${closed.map((a) => auctionCard(a)).join('')}</div></section>` : ''}
-    ${op && canceled.length ? `<section class="section"><div class="section-head"><h2>취소한 경매</h2><span class="eyebrow">운영자만 보임</span></div>
-      <div class="auctions">${canceled.map((a) => auctionCard(a)).join('')}</div></section>` : ''}
+    ${!canSell ? `<div class="card gate slim">
+      <p>물품을 등록하려면 로그인하고 이름·구분을 먼저 등록해 주세요.</p>
+      <div class="form-actions">
+        ${state.user ? '<button type="button" class="btn primary" data-action="open-profile">회원 정보 등록</button>' : '<button type="button" class="btn google" data-action="login"><span class="g" aria-hidden="true">G</span> 구글 로그인</button>'}
+      </div>
+    </div>` : ''}
+    ${showForm ? lotForm() : ''}
+
+    <section class="section" aria-labelledby="auc-open">
+      <div class="section-head"><h2 id="auc-open">진행 중인 경매</h2><span class="eyebrow">${nf(open.length)}건</span></div>
+      ${open.length ? `<div class="auctions">${open.map((a) => auctionCard(a)).join('')}</div>`
+        : `<div class="empty"><b>지금 열린 경매가 없어요.</b>${canSell ? '물품을 등록하면 관리자가 시작할 수 있어요.' : '새 물건이 올라오면 여기에서 입찰할 수 있어요.'}</div>`}
+    </section>
+
+    <section class="section" aria-labelledby="auc-wait">
+      <div class="section-head">
+        <h2 id="auc-wait">대기 중인 물품 <span class="badge soft">미리보기</span></h2>
+        <span class="eyebrow">${nf(waiting.length)}건</span>
+      </div>
+      <p class="hint mb16">회원이 올린 물품이에요. 관리자가 경매를 시작하면 입찰할 수 있습니다.</p>
+      ${waiting.length ? `<div class="auctions">${waiting.map((a) => auctionCard(a)).join('')}</div>`
+        : `<div class="empty"><b>대기 중인 물품이 없어요.</b>${canSell ? '내 물건을 먼저 올려 보세요.' : ''}</div>`}
+    </section>
+
+    ${closed.length ? `<section class="section" aria-labelledby="auc-closed">
+      <div class="section-head"><h2 id="auc-closed">지난 경매 결과</h2><span class="eyebrow">${nf(closed.length)}건</span></div>
+      <div class="auctions">${closed.map((a) => auctionCard(a)).join('')}</div>
+    </section>` : ''}
+
+    ${admin && canceled.length ? `<section class="section" aria-labelledby="auc-canceled">
+      <div class="section-head"><h2 id="auc-canceled">취소한 경매</h2><span class="eyebrow">관리자만 보임</span></div>
+      <div class="auctions">${canceled.map((a) => auctionCard(a)).join('')}</div>
+    </section>` : ''}
   </div>`;
 }
 
-function auctionForm() {
-  return `<form class="card op-form" data-action="create-auction" id="auction-form" hidden>
-    <div class="card-head"><h2>새 경매 올리기</h2></div>
+function lotForm() {
+  const editing = state.lotForm && state.lotForm !== 'new'
+    ? d().auctions.find((a) => a.id === state.lotForm) || null
+    : null;
+  return `<form class="card op-form" data-action="lot" id="lot-form">
+    <div class="card-head"><h2>${editing ? '물품 고치기' : '경매 물품 등록 (대기)'}</h2>
+      <span class="badge ${editing ? 'open' : ''}">${editing ? '대기 중' : '등록하면 대기'}</span></div>
     <div class="form-grid">
-      <label class="field"><span>물품 이름</span><input type="text" name="title" maxlength="60" placeholder="예: 텀블러 (새 것)" required></label>
-      <label class="field"><span>설명 (선택)</span><textarea name="description" rows="2" maxlength="300" placeholder="물건 소개, 받는 곳, 받는 시간 등"></textarea></label>
+      <label class="field"><span>물품 이름</span><input type="text" name="title" maxlength="60" placeholder="예: 텀블러 (새 것)" value="${esc(editing?.title || '')}" required></label>
+      <label class="field"><span>설명 (선택)</span><textarea name="description" rows="2" maxlength="300" placeholder="물건 소개, 받는 곳, 받는 시간 등">${esc(editing?.description || '')}</textarea></label>
       <div class="form-row">
-        <label class="field"><span>시작가 (공기)</span><input type="number" name="start_price" min="1" max="100000" step="1" value="5" required></label>
-        <label class="field"><span>최소 입찰 단위 (공기)</span><input type="number" name="min_step" min="1" max="10000" step="1" value="1" required></label>
+        <label class="field"><span>시작가 (공기)</span><input type="number" name="start_price" min="1" max="100000" step="1" value="${editing ? editing.start_price : 5}" required></label>
+        <label class="field"><span>최소 입찰 단위 (공기)</span><input type="number" name="min_step" min="1" max="10000" step="1" value="${editing ? editing.min_step : 1}" required></label>
       </div>
+      <p class="hint">등록한 물품은 <b>대기</b>로 올라가 모두가 미리 구경할 수 있어요. 관리자가 <b>경매 시작</b>을 누르면 입찰이 열립니다.</p>
       <div class="form-actions">
-        <button type="submit" class="btn primary">경매 올리기</button>
-        <button type="button" class="btn ghost" data-action="toggle-auction-form">닫기</button>
+        <button type="submit" class="btn primary">${editing ? '저장' : '물품 등록'}</button>
+        <button type="button" class="btn ghost" data-action="cancel-lot">닫기</button>
       </div>
     </div>
   </form>`;
@@ -476,17 +859,23 @@ function auctionForm() {
 
 function auctionCard(a) {
   const me = meOf();
-  const op = Boolean(me?.is_operator);
+  const admin = Boolean(me?.is_admin);
   const open = a.status === 'open';
+  const waiting = a.status === 'waiting';
   const mineTop = Boolean(me?.registered && a.highest && a.highest.user_id === me.user_id);
+  const seller = a.seller_id ? a.seller_name : (a.created_by_name || '관리자');
+  const isSeller = Boolean(me?.registered && a.seller_id && a.seller_id === me.user_id);
   const minBid = a.highest ? a.highest.amount + a.min_step : a.start_price;
-  const statusBadge = a.status === 'open' ? '<span class="badge open">진행 중</span>'
-    : a.status === 'closed' ? (a.winner_name ? '<span class="badge closed">낙찰 완료</span>' : '<span class="badge closed">유찰</span>')
-      : '<span class="badge canceled">취소</span>';
+  const statusBadge = open ? '<span class="badge open">진행 중</span>'
+    : waiting ? '<span class="badge wait">대기</span>'
+      : a.status === 'closed' ? (a.winner_name ? '<span class="badge closed">낙찰 완료</span>' : '<span class="badge closed">유찰</span>')
+        : '<span class="badge canceled">취소</span>';
 
   let bidArea = '';
   if (open) {
-    if (!state.user) {
+    if (isSeller) {
+      bidArea = `<p class="hint">내가 올린 물품이라 입찰할 수 없어요.</p>`;
+    } else if (!state.user) {
       bidArea = `<button type="button" class="btn wide ghost" data-action="login"><span class="g" aria-hidden="true">G</span> 로그인하고 입찰하기</button>`;
     } else if (!me?.registered) {
       bidArea = `<button type="button" class="btn wide ghost" data-action="open-profile">회원 정보 등록하고 입찰하기</button>`;
@@ -511,10 +900,19 @@ function auctionCard(a) {
     ? `<ul class="bid-log">${a.bids.slice(0, 5).map((b) => `<li><span>${esc(b.name)} · ${esc(b.kind)}</span><b>${nf(b.amount)}${b.status === 'active' ? ' ⬆' : ''}</b></li>`).join('')}</ul>`
     : '';
 
-  return `<article class="auction ${a.status === 'closed' ? 'closed' : ''} ${a.status === 'canceled' ? 'canceled' : ''}">
+  const adminActions = [];
+  if (admin && waiting) adminActions.push(`<button type="button" class="btn tiny primary" data-action="start-auction" data-id="${esc(a.id)}">경매 시작</button>`);
+  if (admin && open) adminActions.push(`<button type="button" class="btn tiny" data-action="close-auction" data-id="${esc(a.id)}">마감하기</button>`);
+  if (admin && (open || waiting)) adminActions.push(`<button type="button" class="btn tiny danger" data-action="cancel-auction" data-id="${esc(a.id)}">취소하기</button>`);
+  if (admin && (a.status === 'closed' || a.status === 'canceled')) adminActions.push(`<button type="button" class="btn tiny ghost" data-action="delete-auction" data-id="${esc(a.id)}">목록에서 지우기</button>`);
+  if (waiting && (isSeller || admin)) adminActions.push(`<button type="button" class="btn tiny ghost" data-action="edit-lot" data-id="${esc(a.id)}">물품 고치기</button>`);
+  if (waiting && (isSeller || admin)) adminActions.push(`<button type="button" class="btn tiny ghost" data-action="delete-auction" data-id="${esc(a.id)}">지우기</button>`);
+
+  return `<article class="auction ${a.status === 'closed' ? 'closed' : ''} ${a.status === 'canceled' ? 'canceled' : ''} ${waiting ? 'waiting' : ''}">
     <header><h3>${esc(a.title)}</h3>${statusBadge}</header>
     <div class="body">
       ${a.description ? `<p class="desc">${esc(a.description)}</p>` : ''}
+      <div class="seller">${icon('leaf', 'ico sm')} 올린 사람 <b>${esc(seller || '관리자')}</b>${isSeller ? ' <span class="badge soft">나</span>' : ''}</div>
       <div class="price-row">
         <div><small>시작가</small><b>${nf(a.start_price)}</b></div>
         <div><small>지금 최고</small><b>${a.highest ? nf(a.highest.amount) : '—'}</b></div>
@@ -523,51 +921,203 @@ function auctionCard(a) {
       ${open ? `<div class="topline ${mineTop ? 'mine' : ''}">${a.highest
         ? `${mineTop ? '<b>내가</b>' : `<b>${esc(a.highest.name)}</b>님이`} ${nf(a.highest.amount)}공기로 앞서 있어요`
         : '아직 입찰이 없어요. 첫 입찰자가 되어 보세요.'}</div>` : ''}
+      ${waiting ? `<div class="topline waiting">${icon('bulb', 'ico sm')} 아직 경매 전이에요. 관리자가 시작하면 입찰할 수 있어요.</div>` : ''}
       ${winnerBox}
       ${bidArea}
       ${bidLog}
-      ${op && open ? `<div class="op-actions">
-        <button type="button" class="btn tiny" data-action="close-auction" data-id="${esc(a.id)}">마감하기</button>
-        <button type="button" class="btn tiny danger" data-action="cancel-auction" data-id="${esc(a.id)}">취소하기</button>
-      </div>` : ''}
-      ${op && a.status === 'canceled' ? `<div class="op-actions">
-        <button type="button" class="btn tiny ghost" data-action="delete-auction" data-id="${esc(a.id)}">목록에서 지우기</button>
-      </div>` : ''}
+      ${adminActions.length ? `<div class="op-actions">${adminActions.join('')}</div>` : ''}
     </div>
   </article>`;
 }
 
-// ---------- 미션 관리 (운영자) ----------
-function missionsView() {
+// ---------- 관리자 ----------
+function adminView() {
   const me = meOf();
-  if (!me?.is_operator) {
+  if (!me?.is_admin) {
     return `<div class="wrap"><section class="card gate">
-      <span class="eyebrow">미션 관리</span>
-      <h1>운영자만 들어올 수 있어요</h1>
-      <p>구분이 <b>교사</b>인 회원이거나 허브 관리자·교직원이면 미션을 더하고 숨길 수 있어요.</p>
+      <span class="eyebrow">관리자</span>
+      <h1>관리자만 들어올 수 있어요</h1>
+      <p>허브 관리자·교직원이거나, 이 앱의 관리자로 지정된 회원만 쓸 수 있어요.</p>
     </section></div>`;
   }
-  const list = d().missions;
+  const tabs = [
+    ['notice', '📢 공지'],
+    ['season', '🗓️ 시즌'],
+    ['auction', '🔨 경매'],
+    ['member', '👥 회원'],
+    ['mission', '🌱 미션'],
+  ];
+  const dcount = {
+    notice: d().notices.length,
+    season: d().seasons.length,
+    auction: d().auctions.filter((a) => a.status === 'waiting' || a.status === 'open').length,
+    member: d().members.length,
+    mission: d().missions.length,
+  };
   return `<div class="wrap">
-    <div class="section-head"><h2>미션 관리</h2><span class="eyebrow">${nf(list.length)}개</span></div>
-    <form class="card form-grid mb16" data-action="add-mission">
-      <div class="card-head"><h2>미션 더하기</h2></div>
+    <div class="section-head">
+      <h2>${icon('tool', 'ico lg')} 관리자</h2>
+      <span class="eyebrow">${esc(me.name)} · ${esc(d().season?.name || '')}</span>
+    </div>
+    <div class="admin-tabs" role="tablist" aria-label="관리 항목">
+      ${tabs.map(([key, label]) => `<button type="button" role="tab" class="admin-tab ${state.adminTab === key ? 'on' : ''}"
+        data-action="admin-tab" data-tab="${key}" aria-selected="${state.adminTab === key}">${label} <span class="tab-count">${nf(dcount[key])}</span></button>`).join('')}
+    </div>
+    ${state.adminTab === 'notice' ? adminNotices()
+      : state.adminTab === 'season' ? adminSeasons()
+        : state.adminTab === 'auction' ? adminAuctions()
+          : state.adminTab === 'member' ? adminMembers()
+            : adminMissions()}
+  </div>`;
+}
+
+function adminNotices() {
+  const editing = state.editNotice ? (d().notices.find((n) => n.id === state.editNotice) || null) : null;
+  return `<section class="card admin-panel" aria-labelledby="admin-notice">
+    <div class="card-head"><h2 id="admin-notice">공지 관리</h2><span class="badge soft">${nf(d().notices.length)}개</span></div>
+    <form class="form-grid mb16" data-action="notice" id="notice-form">
+      <div class="form-row">
+        <label class="field span2"><span>제목</span><input type="text" name="title" maxlength="80" value="${esc(editing?.title || '')}" placeholder="예: 이번 주 플리마켓 안내" required></label>
+      </div>
+      <label class="field"><span>본문</span><textarea name="body" rows="3" maxlength="2000" placeholder="모두에게 보여 줄 내용">${esc(editing?.body || '')}</textarea></label>
+      <label class="check"><input type="checkbox" name="pinned" ${editing?.pinned ? 'checked' : ''}> <span>상단에 고정</span></label>
+      <div class="form-actions">
+        <button type="submit" class="btn primary">${editing ? '공지 저장' : '공지 올리기'}</button>
+        ${editing ? '<button type="button" class="btn ghost" data-action="cancel-notice-edit">수정 취소</button>' : ''}
+      </div>
+    </form>
+    ${d().notices.length ? `<ul class="admin-list">${d().notices.map((n) => `
+      <li class="${n.pinned ? 'pinned' : ''}">
+        <div class="admin-list-main">
+          <b>${n.pinned ? '📌 ' : ''}${esc(n.title)}</b>
+          <small>${fmtWhen(n.created_at)} · ${esc(n.author_name || '관리자')}${n.body ? ` · ${esc(short(n.body, 60))}` : ''}</small>
+        </div>
+        <div class="row-actions">
+          <button type="button" class="btn tiny ${n.pinned ? '' : 'ghost'}" data-action="notice-pin" data-id="${esc(n.id)}" data-pin="${n.pinned ? '0' : '1'}">${n.pinned ? '고정 해제' : '고정'}</button>
+          <button type="button" class="btn tiny ghost" data-action="notice-edit" data-id="${esc(n.id)}">수정</button>
+          <button type="button" class="btn tiny danger" data-action="notice-delete" data-id="${esc(n.id)}">삭제</button>
+        </div>
+      </li>`).join('')}</ul>` : '<div class="empty"><b>아직 공지가 없어요.</b>위에서 첫 공지를 올려 보세요.</div>'}
+  </section>`;
+}
+
+function adminSeasons() {
+  const list = d().seasons.slice().reverse();
+  const cur = seasonOf();
+  return `<section class="card admin-panel" aria-labelledby="admin-season">
+    <div class="card-head"><h2 id="admin-season">시즌 관리</h2><span class="badge soft">${nf(list.length)}개</span></div>
+    <form class="form-grid mb16" data-action="season" id="season-form">
+      <div class="form-row">
+        <label class="field"><span>새 시즌 이름</span><input type="text" name="name" maxlength="40" placeholder="예: 2026 시즌 2" required></label>
+        <label class="field"><span>메모 (선택)</span><input type="text" name="note" maxlength="200" placeholder="예: 2학기 실천 통장"></label>
+      </div>
+      <div class="form-actions"><button type="submit" class="btn primary">새 시즌 만들기</button></div>
+      <p class="hint">새 시즌은 <b>예정</b>으로 만들어져요. <b>활성으로 전환</b>하면 그때부터 실천·경매가 새 시즌에 쌓이고, 지금 시즌은 자동으로 끝나요(기록은 그대로 남습니다).</p>
+    </form>
+    <ul class="admin-list season-list">
+      ${list.map((s) => `
+        <li class="${s.id === cur?.id ? 'current' : ''}">
+          <div class="admin-list-main">
+            <b>${esc(s.name)} ${s.status === 'active' ? '<span class="badge open">진행 중</span>' : s.status === 'planned' ? '<span class="badge wait">예정</span>' : '<span class="badge closed">지난 시즌</span>'}${s.id === cur?.id ? ' <span class="badge soft">보는 중</span>' : ''}</b>
+            <small>${nf(s.air)}공기 · 실천 ${nf(s.count)}건 · ${nf(s.people)}명 · 경매 ${nf(s.auctions)}건${s.ended_at ? ` · ${fmtDay(String(s.ended_at).slice(0, 10))} 종료` : ''}${s.note ? ` · ${esc(s.note)}` : ''}</small>
+          </div>
+          <div class="row-actions">
+            ${s.status !== 'active' ? `<button type="button" class="btn tiny primary" data-action="season-activate" data-id="${s.id}">활성으로 전환</button>` : ''}
+            ${s.status !== 'ended' ? `<button type="button" class="btn tiny ghost" data-action="season-end" data-id="${s.id}">시즌 종료</button>` : ''}
+            <button type="button" class="btn tiny ghost" data-action="season-view" data-id="${s.id}">보기</button>
+          </div>
+        </li>`).join('')}
+    </ul>
+  </section>`;
+}
+
+function adminAuctions() {
+  const waiting = d().auctions.filter((a) => a.status === 'waiting');
+  const open = d().auctions.filter((a) => a.status === 'open');
+  return `<section class="card admin-panel" aria-labelledby="admin-auction">
+    <div class="card-head"><h2 id="admin-auction">경매 운영</h2>
+      <span class="badge soft">대기 ${nf(waiting.length)} · 진행 ${nf(open.length)}</span></div>
+    <p class="hint mb16">회원이 올린 물품은 대기 상태예요. <b>경매 시작</b>을 누르면 입찰이 열리고, <b>마감</b>하면 최고 입찰자가 낙찰받아요.</p>
+    <h3 class="sub-title">대기 중 (${nf(waiting.length)})</h3>
+    ${waiting.length ? `<ul class="admin-list">${waiting.map((a) => `
+      <li>
+        <div class="admin-list-main">
+          <b>${esc(a.title)}</b>
+          <small>올린 사람 ${esc(a.seller_name || '관리자')} · 시작가 ${nf(a.start_price)}공기 · 단위 ${nf(a.min_step)} · ${fmtWhen(a.created_at)}</small>
+        </div>
+        <div class="row-actions">
+          <button type="button" class="btn tiny primary" data-action="start-auction" data-id="${esc(a.id)}">경매 시작</button>
+          <button type="button" class="btn tiny ghost" data-action="edit-lot" data-id="${esc(a.id)}">고치기</button>
+          <button type="button" class="btn tiny danger" data-action="cancel-auction" data-id="${esc(a.id)}">취소</button>
+        </div>
+      </li>`).join('')}</ul>` : '<div class="empty"><b>대기 중인 물품이 없어요.</b></div>'}
+    <h3 class="sub-title mt10">진행 중 (${nf(open.length)})</h3>
+    ${open.length ? `<ul class="admin-list">${open.map((a) => `
+      <li>
+        <div class="admin-list-main">
+          <b>${esc(a.title)}</b>
+          <small>올린 사람 ${esc(a.seller_name || '관리자')} · 입찰 ${nf(a.bid_count)}회 · 지금 최고 ${a.highest ? `${nf(a.highest.amount)}공기 (${esc(a.highest.name)})` : '없음'}</small>
+        </div>
+        <div class="row-actions">
+          <button type="button" class="btn tiny primary" data-action="close-auction" data-id="${esc(a.id)}">마감</button>
+          <button type="button" class="btn tiny danger" data-action="cancel-auction" data-id="${esc(a.id)}">취소</button>
+        </div>
+      </li>`).join('')}</ul>` : '<div class="empty"><b>진행 중인 경매가 없어요.</b></div>'}
+  </section>`;
+}
+
+function adminMembers() {
+  const list = d().members.slice().sort((a, b) => b.earned - a.earned || a.name.localeCompare(b.name, 'ko'));
+  return `<section class="card admin-panel" aria-labelledby="admin-member">
+    <div class="card-head"><h2 id="admin-member">회원 관리</h2><span class="badge soft">${nf(list.length)}명</span></div>
+    <p class="hint mb16">구분은 랭킹·통계에 쓰여요. <b>관리자</b>로 지정하면 공지·시즌·경매·미션을 운영할 수 있어요. (허브 관리자·교직원은 자동으로 관리자예요.)</p>
+    <div class="table-scroll">
+      <table class="board">
+        <thead><tr><th scope="col">이름</th><th scope="col">구분</th><th scope="col" class="num">적립</th><th scope="col" class="num">실천</th><th scope="col">관리자</th><th scope="col">최근 실천</th><th scope="col"></th></tr></thead>
+        <tbody>
+          ${list.length ? list.map((m) => `
+            <tr>
+              <td class="name">${esc(m.name)}</td>
+              <td>
+                <select data-action="member-kind" data-id="${esc(m.user_id)}" aria-label="${esc(m.name)} 구분">
+                  ${KIND_ORDER.map((k) => `<option value="${k}"${m.kind === k ? ' selected' : ''}>${k}</option>`).join('')}
+                </select>
+              </td>
+              <td class="num">${nf(m.earned)}</td>
+              <td class="num">${nf(m.acts)}회</td>
+              <td>
+                <button type="button" class="btn tiny ${m.is_admin ? 'primary' : 'ghost'}" data-action="member-admin" data-id="${esc(m.user_id)}" data-admin="${m.is_admin ? '0' : '1'}">${m.is_admin ? '관리자 해제' : '관리자 지정'}</button>
+              </td>
+              <td>${m.last_at ? fmtWhen(m.last_at) : '<span class="muted">—</span>'}</td>
+              <td><button type="button" class="btn tiny ghost" data-action="member-delete" data-id="${esc(m.user_id)}" data-name="${esc(m.name)}">정리</button></td>
+            </tr>`).join('') : '<tr><td colspan="7" class="muted empty-cell">아직 회원이 없어요.</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+    <p class="hint mt8">‘정리’는 실천·입찰 기록이 없는 회원만 지울 수 있어요(기록 보호).</p>
+  </section>`;
+}
+
+function adminMissions() {
+  return `<section class="card admin-panel" aria-labelledby="admin-mission">
+    <div class="card-head"><h2 id="admin-mission">미션 관리</h2><span class="badge soft">${nf(d().missions.length)}개</span></div>
+    <form class="form-grid mb16" data-action="add-mission">
       <div class="form-row three">
         <label class="field span2"><span>미션 이름</span><input type="text" name="name" maxlength="120" placeholder="예: 장바구니 들고 장보기" required></label>
         <label class="field"><span>공기</span><input type="number" name="air" min="1" max="100" step="1" value="1" required></label>
         <div class="form-actions end"><button type="submit" class="btn primary">추가</button></div>
       </div>
-      <p class="hint">새 미션은 바로 실천 등록 목록에 나타나요. 지운 미션은 기록이 남도록 숨기기만 할 수 있어요.</p>
+      <p class="hint">새 미션은 바로 실천 등록 목록에 나타나요. 기본 미션은 지우지 말고 숨겨 주세요.</p>
     </form>
     <div class="table-tools">
-      <input type="search" id="mission-admin-search" placeholder="미션 찾기" aria-label="미션 찾기">
+      <input type="search" id="mission-admin-search" placeholder="미션 찾기" value="${esc(state.missionAdminQuery)}" aria-label="미션 찾기">
     </div>
     <div class="mission-admin" id="mission-admin-list">${missionAdminHtml()}</div>
-  </div>`;
+  </section>`;
 }
 
 function missionAdminHtml() {
-  const q = ($('#mission-admin-search')?.value || '').trim().toLowerCase();
+  const q = state.missionAdminQuery.trim().toLowerCase();
   const list = d().missions.filter((m) => !q || m.name.toLowerCase().includes(q));
   if (!list.length) return `<div class="empty"><b>찾는 미션이 없어요.</b></div>`;
   return list.map((m) => `
@@ -584,8 +1134,8 @@ function missionAdminHtml() {
 
 // ---------- 동작 ----------
 function switchView(view) {
-  state.view = view;
-  if (view === 'practices') state.day = state.day || todayStr();
+  state.view = view === 'missions' ? 'admin' : view;
+  if (view === 'practices' && !state.day) state.day = todayStr();
   render();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -616,7 +1166,6 @@ document.addEventListener('click', async (e) => {
   if (action === 'close-dialog') { const dlg = el.closest('dialog'); if (dlg?.open) dlg.close(); return; }
   if (action === 'pick') {
     state.picked = state.picked === el.dataset.id ? null : el.dataset.id;
-    // 목록·고른 미션만 다시 그린다 (날짜 입력은 그대로)
     const list = $('#mission-list');
     if (list) list.innerHTML = missionListHtml();
     const picked = d().missions.find((m) => m.id === state.picked) || null;
@@ -624,7 +1173,8 @@ document.addEventListener('click', async (e) => {
     if (nameEl) nameEl.textContent = picked ? picked.name : '아래에서 미션을 골라 주세요';
     const box = $('.pick-box');
     if (box && picked) {
-      $('.reward', box).innerHTML = `<b>+${nf(picked.air)}</b><small>공기</small>`;
+      const reward = $('.reward', box);
+      if (reward) reward.innerHTML = `<b>+${nf(picked.air)}</b><small>공기</small>`;
       const submit = $('form[data-action="activity"] button[type="submit"]', box);
       if (submit) { submit.disabled = false; submit.textContent = `${nf(picked.air)}공기 적립하기`; }
     }
@@ -641,8 +1191,41 @@ document.addEventListener('click', async (e) => {
     if (list) list.innerHTML = missionListHtml();
     return;
   }
+  if (action === 'react') {
+    const id = el.dataset.id;
+    const emoji = el.dataset.emoji;
+    if (!state.user) { toast('로그인하면 반응을 남길 수 있어요.', 'err'); return; }
+    if (!meOf()?.registered) { openProfileDialog(); return; }
+    try {
+      const r = await api.react(id, emoji);
+      const btn = el;
+      btn.classList.toggle('on', r.on === true);
+      btn.setAttribute('aria-pressed', r.on ? 'true' : 'false');
+      const count = btn.querySelector('b');
+      if (count) count.textContent = r.count ? nf(r.count) : '';
+    } catch (err) { toast(err.message || '반응을 남기지 못했어요.', 'err'); }
+    return;
+  }
+  if (action === 'toggle-comments') {
+    const id = el.dataset.id;
+    state.openComments[id] = !state.openComments[id];
+    await load({ quiet: true });
+    const opened = $(`.feed-item [data-id="${CSS.escape(String(id))}"][data-action="toggle-comments"]`);
+    if (opened) opened.scrollIntoView({ block: 'nearest' });
+    return;
+  }
+  if (action === 'delete-comment') {
+    const ok = await askConfirm('이 댓글을 지울까요?');
+    if (!ok) return;
+    try {
+      await api.deleteComment(el.dataset.id);
+      toast('댓글을 지웠어요.', 'ok');
+      await load({ quiet: true });
+    } catch (err) { toast(err.message || '지우지 못했어요.', 'err'); }
+    return;
+  }
   if (action === 'delete-activity') {
-    const ok = await askConfirm('이 실천 기록을 지울까요? 적립된 공기도 함께 줄어들어요.');
+    const ok = await askConfirm('이 실천 기록을 지울까요? 적립된 공기도 함께 줄어들고, 반응·댓글도 함께 사라져요.');
     if (!ok) return;
     try {
       await api.deleteActivity(el.dataset.id);
@@ -651,22 +1234,36 @@ document.addEventListener('click', async (e) => {
     } catch (err) { toast(err.message || '지우지 못했어요.', 'err'); }
     return;
   }
-  if (action === 'toggle-auction-form') {
-    const form = $('#auction-form');
-    if (!form) return;
-    form.hidden = !form.hidden;
-    if (!form.hidden) form.querySelector('input[name="title"]')?.focus();
+  if (action === 'admin-tab') {
+    state.adminTab = el.dataset.tab || 'notice';
+    state.editNotice = null;
+    render();
     return;
   }
-  if (action === 'close-auction' || action === 'cancel-auction' || action === 'delete-auction') {
+  if (action === 'new-lot') { state.lotForm = state.lotForm === null ? 'new' : null; render(); return; }
+  if (action === 'cancel-lot') { state.lotForm = null; render(); return; }
+  if (action === 'edit-lot') {
+    state.lotForm = el.dataset.id;
+    state.view = 'auctions';
+    render();
+    const form = $('#lot-form');
+    if (form) { form.scrollIntoView({ block: 'center', behavior: 'smooth' }); form.querySelector('input[name="title"]')?.focus(); }
+    return;
+  }
+  if (action === 'start-auction' || action === 'close-auction' || action === 'cancel-auction' || action === 'delete-auction') {
     const win = action === 'close-auction';
-    const ok = await askConfirm(win
-      ? '지금 최고 입찰자를 낙찰자로 확정하고 경매를 마감할까요?'
-      : action === 'cancel-auction' ? '이 경매를 취소할까요? 묶여 있던 입찰 공기는 모두 풀립니다.' : '취소한 경매를 목록에서 지울까요?');
+    const start = action === 'start-auction';
+    const del = action === 'delete-auction';
+    const ok = await askConfirm(start ? '이 물품의 경매를 시작할까요? 시작하면 모두 입찰할 수 있어요.'
+      : win ? '지금 최고 입찰자를 낙찰자로 확정하고 경매를 마감할까요?'
+        : del ? '이 물품을 목록에서 지울까요? (지난 기록도 함께 사라져요)' : '이 경매를 취소할까요? 묶여 있던 입찰 공기는 모두 풀립니다.');
     if (!ok) return;
     try {
       await withBusy(el, async () => {
-        if (win) {
+        if (start) {
+          await api.startAuction(el.dataset.id);
+          toast('경매를 시작했어요. 이제 입찰할 수 있어요.', 'ok');
+        } else if (win) {
           const r = await api.closeAuction(el.dataset.id);
           toast(r.result === 'won' ? `${r.winner}님이 ${nf(r.amount)}공기로 낙찰받았어요.` : '입찰이 없어 유찰로 마감했어요.', 'ok');
         } else if (action === 'cancel-auction') {
@@ -679,6 +1276,79 @@ document.addEventListener('click', async (e) => {
       });
       await load({ quiet: true });
     } catch (err) { toast(err.message || '처리하지 못했어요.', 'err'); }
+    return;
+  }
+  if (action === 'notice-edit') {
+    state.editNotice = el.dataset.id;
+    state.adminTab = 'notice';
+    render();
+    $('#notice-form')?.querySelector('input[name="title"]')?.focus();
+    return;
+  }
+  if (action === 'cancel-notice-edit') { state.editNotice = null; render(); return; }
+  if (action === 'notice-pin') {
+    try {
+      await withBusy(el, () => api.patchNotice(el.dataset.id, { pinned: el.dataset.pin === '1' }));
+      toast(el.dataset.pin === '1' ? '공지를 위에 고정했어요.' : '고정을 풀었어요.', 'ok');
+      await load({ quiet: true });
+    } catch (err) { toast(err.message || '바꾸지 못했어요.', 'err'); }
+    return;
+  }
+  if (action === 'notice-delete') {
+    const ok = await askConfirm('이 공지를 지울까요?');
+    if (!ok) return;
+    try {
+      await withBusy(el, () => api.deleteNotice(el.dataset.id));
+      if (state.editNotice === el.dataset.id) state.editNotice = null;
+      toast('공지를 지웠어요.', 'ok');
+      await load({ quiet: true });
+    } catch (err) { toast(err.message || '지우지 못했어요.', 'err'); }
+    return;
+  }
+  if (action === 'season-activate') {
+    const ok = await askConfirm('이 시즌을 활성 시즌으로 바꿀까요? 지금 시즌은 자동으로 끝나고, 새 실천·경매는 이 시즌에 쌓여요.');
+    if (!ok) return;
+    try {
+      await withBusy(el, () => api.activateSeason(el.dataset.id));
+      state.seasonId = Number(el.dataset.id);
+      toast('활성 시즌을 바꿨어요.', 'ok');
+      await load({ quiet: true });
+    } catch (err) { toast(err.message || '바꾸지 못했어요.', 'err'); }
+    return;
+  }
+  if (action === 'season-end') {
+    const ok = await askConfirm('이 시즌을 끝낼까요? 기록은 그대로 남고, 이후 실천은 가장 최근 시즌으로 쌓여요.');
+    if (!ok) return;
+    try {
+      await withBusy(el, () => api.endSeason(el.dataset.id));
+      toast('시즌을 끝냈어요.', 'ok');
+      await load({ quiet: true });
+    } catch (err) { toast(err.message || '끝내지 못했어요.', 'err'); }
+    return;
+  }
+  if (action === 'season-view') {
+    state.seasonId = Number(el.dataset.id);
+    switchView('home');
+    await load({ quiet: true });
+    return;
+  }
+  if (action === 'member-admin') {
+    const next = el.dataset.admin === '1';
+    try {
+      await withBusy(el, () => api.patchMember(el.dataset.id, { is_admin: next }));
+      toast(next ? '관리자로 지정했어요.' : '관리자 권한을 풀었어요.', 'ok');
+      await load({ quiet: true });
+    } catch (err) { toast(err.message || '바꾸지 못했어요.', 'err'); }
+    return;
+  }
+  if (action === 'member-delete') {
+    const ok = await askConfirm(`‘${el.dataset.name}’ 회원을 정리할까요? 실천·입찰 기록이 있으면 지울 수 없어요.`);
+    if (!ok) return;
+    try {
+      await withBusy(el, () => api.deleteMember(el.dataset.id));
+      toast('회원을 정리했어요.', 'ok');
+      await load({ quiet: true });
+    } catch (err) { toast(err.message || '정리하지 못했어요.', 'err'); }
     return;
   }
   if (action === 'toggle-mission') {
@@ -752,18 +1422,62 @@ document.addEventListener('submit', async (e) => {
     return;
   }
 
-  if (action === 'create-auction') {
+  if (action === 'lot') {
     const fd = new FormData(form);
+    const payload = {
+      title: String(fd.get('title') || ''),
+      description: String(fd.get('description') || ''),
+      start_price: Number(fd.get('start_price')),
+      min_step: Number(fd.get('min_step')),
+    };
+    const editing = state.lotForm && state.lotForm !== 'new' ? state.lotForm : null;
     try {
-      await withBusy(btn, () => api.addAuction({
-        title: String(fd.get('title') || ''),
-        description: String(fd.get('description') || ''),
-        start_price: Number(fd.get('start_price')),
-        min_step: Number(fd.get('min_step')),
-      }));
-      toast('경매를 올렸어요.', 'ok');
+      await withBusy(btn, () => (editing ? api.patchAuction(editing, payload) : api.addAuction(payload)));
+      toast(editing ? '물품 정보를 고쳤어요.' : '물품을 등록했어요. 대기 중 목록에서 볼 수 있어요.', 'ok');
+      state.lotForm = null;
       await load({ quiet: true });
-    } catch (err) { toast(err.message || '올리지 못했어요.', 'err'); }
+    } catch (err) { toast(err.message || '처리하지 못했어요.', 'err'); }
+    return;
+  }
+
+  if (action === 'comment') {
+    const body = String(new FormData(form).get('body') || '').trim();
+    if (!body) { toast('댓글 내용을 적어 주세요.', 'err'); return; }
+    try {
+      await withBusy(btn, () => api.addComment(form.dataset.id, body));
+      state.openComments[form.dataset.id] = true;
+      form.querySelector('input[name="body"]').value = '';
+      await load({ quiet: true });
+    } catch (err) { toast(err.message || '댓글을 남기지 못했어요.', 'err'); }
+    return;
+  }
+
+  if (action === 'notice') {
+    const fd = new FormData(form);
+    const payload = {
+      title: String(fd.get('title') || ''),
+      body: String(fd.get('body') || ''),
+      pinned: fd.get('pinned') === 'on',
+    };
+    try {
+      await withBusy(btn, () => (state.editNotice ? api.patchNotice(state.editNotice, payload) : api.addNotice(payload)));
+      toast(state.editNotice ? '공지를 고쳤어요.' : '공지를 올렸어요.', 'ok');
+      state.editNotice = null;
+      await load({ quiet: true });
+    } catch (err) { toast(err.message || '공지를 올리지 못했어요.', 'err'); }
+    return;
+  }
+
+  if (action === 'season') {
+    const fd = new FormData(form);
+    const name = String(fd.get('name') || '').trim();
+    const note = String(fd.get('note') || '').trim();
+    if (!name) { toast('시즌 이름을 적어 주세요.', 'err'); return; }
+    try {
+      await withBusy(btn, () => api.addSeason(name, note));
+      toast(`‘${name}’ 시즌을 만들었어요. 활성으로 전환하면 새로 시작해요.`, 'ok');
+      await load({ quiet: true });
+    } catch (err) { toast(err.message || '시즌을 만들지 못했어요.', 'err'); }
     return;
   }
 
@@ -810,15 +1524,31 @@ document.addEventListener('input', (e) => {
     return;
   }
   if (e.target.id === 'mission-admin-search') {
+    state.missionAdminQuery = e.target.value;
     const list = $('#mission-admin-list');
     if (list) list.innerHTML = missionAdminHtml();
   }
 });
-document.addEventListener('change', (e) => {
+document.addEventListener('change', async (e) => {
   if (e.target.id === 'member-sort') {
     state.memberSort = e.target.value;
     const rows = $('#member-rows');
     if (rows) rows.innerHTML = memberRowsHtml();
+    return;
+  }
+  if (e.target.id === 'season-pick') {
+    const id = Number(e.target.value);
+    state.seasonId = Number.isFinite(id) && id > 0 ? id : null;
+    await load();
+    return;
+  }
+  if (e.target.matches('[data-action="member-kind"]')) {
+    const id = e.target.dataset.id;
+    try {
+      await api.patchMember(id, { kind: e.target.value });
+      toast('구분을 바꿨어요.', 'ok');
+      await load({ quiet: true });
+    } catch (err) { toast(err.message || '바꾸지 못했어요.', 'err'); await load({ quiet: true }); }
   }
 });
 
@@ -858,7 +1588,7 @@ onUserChange((user) => {
   const prev = state.user?.id ?? null;
   state.user = user;
   if (!booted) { boot(); return; }
-  if ((user?.id ?? null) !== prev) { state.picked = null; load({ quiet: true }); }
+  if ((user?.id ?? null) !== prev) { state.picked = null; state.lotForm = null; state.editNotice = null; load({ quiet: true }); }
   else render();
 });
 
