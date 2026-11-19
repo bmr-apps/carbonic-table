@@ -1164,6 +1164,17 @@ document.addEventListener('click', async (e) => {
   }
   if (action === 'retry' || action === 'refresh') { load({ quiet: Boolean(state.data) }); return; }
   if (action === 'open-profile') { openProfileDialog(); return; }
+  if (action === 'delete-profile') {
+    const ok = await askConfirm('내 회원 정보를 지울까요? 이름·구분이 사라지고, 실천 기록이 있으면 지울 수 없어요. 다시 등록하면 새로 시작해요.');
+    if (!ok) return;
+    try {
+      await api.deleteProfile();
+      $('#profile-dialog')?.close();
+      toast('회원 정보를 지웠어요.', 'ok');
+      await load({ quiet: true });
+    } catch (err) { toast(err.message || '지우지 못했어요.', 'err'); }
+    return;
+  }
   if (action === 'close-dialog') { const dlg = el.closest('dialog'); if (dlg?.open) dlg.close(); return; }
   if (action === 'pick') {
     state.picked = state.picked === el.dataset.id ? null : el.dataset.id;

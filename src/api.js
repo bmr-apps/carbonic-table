@@ -53,6 +53,7 @@ const seg = (v) => encodeURIComponent(String(v));
 export const api = {
   state: (seasonId) => request(`/state${seasonId ? `?season=${seg(seasonId)}` : ''}`),
   saveProfile: (name, kind) => request('/me', { method: 'POST', body: { name, kind } }),
+  deleteProfile: () => request('/me', { method: 'DELETE' }),
   addActivity: (mission_id, done_on) => request('/activities', { method: 'POST', body: { mission_id, done_on } }),
   deleteActivity: (id) => request(`/activities/${seg(id)}`, { method: 'DELETE' }),
   react: (id, emoji) => request(`/activities/${seg(id)}/reactions`, { method: 'POST', body: { emoji } }),

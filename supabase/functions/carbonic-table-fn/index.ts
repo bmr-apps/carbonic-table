@@ -549,6 +549,21 @@ Deno.serve(async (req) => {
       return json(req, 200, { ok: true, member: row });
     }
 
+    // 내 회원 정보 지우기 (탈퇴) — 실천·입찰·댓글·반응이 하나도 없을 때만
+    if (path === '/me' && req.method === 'DELETE') {
+      if (!member) return json(req, 404, { error: '등록된 회원 정보가 없어요.' });
+      const [c] = await db`
+        select (select count(*)::int from carbonic_table.activities where user_id = ${member.user_id}) as acts,
+               (select count(*)::int from carbonic_table.bids where user_id = ${member.user_id}) as bids,
+               (select count(*)::int from carbonic_table.activity_comments where user_id = ${member.user_id}) as cmts,
+               (select count(*)::int from carbonic_table.activity_reactions where user_id = ${member.user_id}) as reacts` as unknown as Row[];
+      if (Number(c?.acts ?? 0) || Number(c?.bids ?? 0) || Number(c?.cmts ?? 0) || Number(c?.reacts ?? 0)) {
+        return json(req, 409, { error: '실천·입찰·댓글·반응 기록이 있는 회원 정보는 지울 수 없어요. 관리자에게 문의해 주세요.' });
+      }
+      await db`delete from carbonic_table.members where user_id = ${member.user_id}`;
+      return json(req, 200, { ok: true, deleted: member.user_id });
+    }
+
     // 실천 등록 — 지금 시즌에 적립
     if (path === '/activities' && req.method === 'POST') {
       const body = await readJson(req);
