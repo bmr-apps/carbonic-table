@@ -7,7 +7,7 @@ import { loginWithGoogle, logout, onUserChange } from './auth.js';
 import { local } from './store.js';
 import { FN_URL } from './supabase.js';
 import { api, ApiError } from './api.js';
-import { earthLook, earthSvg } from './earth.js';
+import { earthLook, earthSvg, earthState, tempText, syncEarthSpin } from './earth.js';
 
 // ---------- 작은 도우미 ----------
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -73,8 +73,8 @@ function icon(name, cls = 'ico') {
 }
 
 // ---------- 지구(탄소·공기) ----------
-// 탄소는 시즌의 기준 시각부터 한 시간마다 쌓이고, 공기가 쌓이면 그만큼 지구가 맑아져요.
-// 지구 그림은 src/earth.js 가 그립니다 (맑은 자연 지구 → 붉게 달아오른 지구로 색을 이어서).
+// 탄소는 시즌의 기준 시각부터 한 시간마다 쌓이고, 공기가 쌓이면 그만큼 지구가 시원해져요.
+// 지구 그림은 src/earth.js 가 그립니다 (건강하고 시원한 지구 → 기후 위기의 뜨거운 지구로 색을 이어서).
 let serverOffset = 0;   // 서버 시각 − 브라우저 시각 (밀리초)
 function liveEarth() {
   const s = seasonOf();
@@ -89,12 +89,11 @@ function liveEarth() {
   const emitted = Math.round(hours * cph * 10) / 10;
   const net = Math.round((emitted - air) * 10) / 10;
   const denom = Math.max(cap, emitted > 0 ? emitted : cap);
-  const pollution = Math.max(0, Math.min(1, net / denom));
-  const stateName = pollution < 0.05 ? 'clean' : pollution < 0.35 ? 'watch' : pollution < 0.7 ? 'smog' : 'critical';
+  const warming = Math.max(0, Math.min(1, net / denom));
   return {
     carbon_per_hour: cph, carbon_capacity: cap, earth_started_at: base.earth_started_at,
     elapsed_seconds: elapsed, next_carbon_in: 3600 - (elapsed % 3600),
-    emitted, air, net, pollution, state: stateName,
+    emitted, air, net, warming, state: earthState(warming),
   };
 }
 const imgSrc = (path) => {
@@ -234,6 +233,7 @@ function render() {
         : state.view === 'ranking' ? rankingView()
           : state.view === 'admin' ? adminView()
             : homeView();
+  syncEarthSpin(main);   // 다시 그려도 대륙·구름이 돌던 자리에서 이어지게
 }
 
 function renderHeader() {
@@ -373,13 +373,14 @@ function homeView() {
       ${earthCardHtml()}
       <aside class="earth-side">
         <h2 id="earth-title">${icon('globe', 'ico lg')} 지구는 지금</h2>
-        <p>한 시간마다 탄소 <b>${nf(season?.earth?.carbon_per_hour ?? 1)}개</b>씩 쌓여요. 우리가 모은 <b>공기 1개</b>가 사라질 탄소 1개를 막아 지구를 맑게 되돌려요.</p>
+        <p>한 시간마다 탄소 <b>${nf(season?.earth?.carbon_per_hour ?? 1)}개</b>씩 쌓여 지구 기온이 올라가요. 우리가 모은 <b>공기 1개</b>가 탄소 1개를 상쇄해 지구 온도를 낮춰 줘요.</p>
         <ul class="earth-steps">
-          <li class="s-clean"><span></span>맑음 — 공기가 탄소보다 많아요</li>
-          <li class="s-watch"><span></span>조금 흐림 — 탄소가 슬슬 쌓여요</li>
-          <li class="s-smog"><span></span>뿌옇게 덮임 — 공기가 더 필요해요</li>
-          <li class="s-critical"><span></span>붉게 달아오름 — 지구가 한계예요</li>
+          <li class="s-stable"><span></span>안정 (시원함) — 지구가 시원하게 숨 쉬어요</li>
+          <li class="s-warming"><span></span>온난화 주의 — 탄소가 쌓이며 기온이 올라요</li>
+          <li class="s-crisis"><span></span>기후 위기 경고 — 빙하가 녹고 지구가 달아올라요</li>
+          <li class="s-boiling"><span></span>임계점 돌파 (폭염) — 지구가 한계에 닿았어요</li>
         </ul>
+        <p class="hint">온난화 지수와 지구 온도는 이 앱의 이야기를 위한 눈금이에요.</p>
       </aside>
     </section>
 
@@ -435,8 +436,9 @@ function homeView() {
 function earthCardHtml() {
   const e = liveEarth();
   if (!e) return `<article class="earth-card empty-earth" id="earth-card"><p class="hint">시즌이 시작되면 지구가 나타나요.</p></article>`;
-  const p = e.pollution;
+  const p = e.warming;
   const look = earthLook(p);
+  const temp = look.temp;
   const netTxt = e.net > 0 ? `+${nf(e.net)}` : e.net < 0 ? `−${nf(Math.abs(e.net))}` : '0';
   const nextMin = Math.max(0, Math.ceil(e.next_carbon_in / 60));
   const pct = Math.round(p * 100);
@@ -449,21 +451,22 @@ function earthCardHtml() {
       <div class="earth-head">
         <span class="eyebrow">🌍 이번 시즌 지구</span>
         <b>${esc(seasonOf()?.name || '')}</b>
-        <span class="earth-pct">오염도 ${pct}%</span>
+        <span class="earth-pct">온난화 지수 ${pct}%</span>
+        <span class="earth-temp ${e.state}">지구 온도 ${temp}</span>
       </div>
       <div class="earth-stats">
-        <div class="earth-stat"><small>지금까지 발생한 탄소</small><b>${nf(e.emitted)}<span class="u">개</span></b></div>
+        <div class="earth-stat"><small>지구에 쌓인 탄소</small><b>${nf(e.emitted)}<span class="u">개</span></b></div>
         <div class="earth-stat"><small>우리가 모은 공기</small><b>${nf(e.air)}<span class="u">개</span></b></div>
         <div class="earth-stat ${e.net > 0 ? 'hot' : 'cool'}"><small>아직 남은 탄소 (순탄소)</small><b>${netTxt}<span class="u">개</span></b></div>
       </div>
-      <div class="bar earth-bar" role="img" aria-label="지구 오염도 ${pct}%"><i class="${wcls(pct)}"></i></div>
+      <div class="bar earth-bar" role="img" aria-label="지구 온난화 지수 ${pct}%"><i class="${wcls(pct)}"></i></div>
       <p class="earth-note">${e.net > 0
-        ? `탄소 <b>${nf(e.net)}개</b>가 지구를 붉게 물들였어요. 공기를 <b>${nf(e.net)}개</b> 더 모으면 다시 맑아져요.`
-        : `모은 공기가 발생한 탄소보다 <b>${nf(Math.abs(e.net))}개</b> 많아 지구가 맑아요.`}</p>
+        ? `탄소 <b>${nf(e.net)}개</b>가 지구 온도를 <b>${temp}</b>까지 올렸어요. 공기를 <b>${nf(e.net)}개</b> 더 모으면 다시 시원해져요.`
+        : `모은 공기가 탄소보다 <b>${nf(Math.abs(e.net))}개</b> 많아 지구가 서서히 식고 있어요.`}</p>
       <div class="earth-foot">
         <span>1시간마다 탄소 <b>${nf(e.carbon_per_hour)}개</b></span>
         <span>다음 탄소까지 <b>${nextMin}분</b></span>
-        <span class="earth-foot-wide">지구가 완전히 붉어지는 순탄소 ${nf(e.carbon_capacity)}개</span>
+        <span class="earth-foot-wide">임계점에 이르는 순탄소 ${nf(e.carbon_capacity)}개</span>
       </div>
     </div>
   </article>`;
@@ -1295,14 +1298,14 @@ function adminSeasons() {
       <form class="form-grid" data-action="earth" data-id="${cur.id}">
         <div class="form-row three">
           <label class="field"><span>1시간마다 발생하는 탄소</span><input type="number" name="carbon_per_hour" min="0" max="1000" step="0.1" value="${Number(e.carbon_per_hour ?? 1)}" required></label>
-          <label class="field"><span>지구가 완전히 붉어지는 순탄소</span><input type="number" name="carbon_capacity" min="0.1" max="100000" step="0.1" value="${Number(e.carbon_capacity ?? 24)}" required></label>
+          <label class="field"><span>임계점에 이르는 순탄소 (온난화 100%)</span><input type="number" name="carbon_capacity" min="0.1" max="100000" step="0.1" value="${Number(e.carbon_capacity ?? 24)}" required></label>
           <div class="form-actions end"><button type="submit" class="btn primary">설정 저장</button></div>
         </div>
         <div class="form-actions">
           <button type="button" class="btn ghost" data-action="earth-reset" data-id="${cur.id}">탄소 기준 시각을 지금으로 리셋</button>
-          <span class="hint">지금 탄소 ${nf(e.emitted ?? 0)}개 · 공기 ${nf(e.air ?? 0)}개 · 순탄소 ${nf(e.net ?? 0)}개 (오염도 ${nf(e.pollution_pct ?? 0)}%)</span>
+          <span class="hint">지금 탄소 ${nf(e.emitted ?? 0)}개 · 공기 ${nf(e.air ?? 0)}개 · 순탄소 ${nf(e.net ?? 0)}개 (온난화 지수 ${nf(e.warming_pct ?? e.pollution_pct ?? 0)}% · ${tempText(Number(e.warming_pct ?? e.pollution_pct ?? 0) / 100)})</span>
         </div>
-        <p class="hint">탄소는 기준 시각부터 <b>한 시간마다</b> 쌓여요(크론 없이 계산). 리셋하면 그 시각부터 다시 세고, 지구는 그만큼 맑아져요.</p>
+        <p class="hint">탄소는 기준 시각부터 <b>한 시간마다</b> 쌓여 지구 기온을 올려요(크론 없이 계산). 리셋하면 그 시각부터 다시 세고, 지구는 그만큼 시원해져요.</p>
       </form>
     </div>` : ''}
     <form class="form-grid mb16" data-action="season" id="season-form">
@@ -1684,7 +1687,7 @@ document.addEventListener('click', async (e) => {
     if (!ok) return;
     try {
       await withBusy(el, () => api.setEarth(el.dataset.id, { reset: true }));
-      toast('지구의 탄소 기준 시각을 지금으로 리셋했어요.', 'ok');
+      toast('탄소 기준 시각을 지금으로 리셋했어요. 지구가 한숨 돌렸어요.', 'ok');
       await load({ quiet: true });
     } catch (err) { toast(err.message || '리셋하지 못했어요.', 'err'); }
     return;
@@ -2032,12 +2035,13 @@ function initTheme() {
   });
 }
 
-// ---------- 1분마다 지구 다시 칠하기 ----------
+// ---------- 30초마다 지구 다시 칠하기 ----------
 window.setInterval(() => {
   if (state.view !== 'home' || !state.data) return;
   const el = $('#earth-card');
   if (!el) return;
   el.outerHTML = earthCardHtml();
+  syncEarthSpin($('#main'));
 }, 30000);
 
 // ---------- 시작 ----------

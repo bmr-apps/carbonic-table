@@ -204,10 +204,11 @@ async function dropImageIfUnused(tx: Sql, imagePath: string): Promise<void> {
 
 // ---------- 지구(탄소·공기) ----------
 /**
- * 지구는 시즌의 기준 시각(earth_started_at)부터 한 시간마다 탄소가 쌓입니다.
+ * 지구는 시즌의 기준 시각(earth_started_at)부터 한 시간마다 탄소가 쌓여 기온이 올라갑니다.
  * 누적 발생 탄소 = floor((지금 - 기준 시각) / 1시간) × carbon_per_hour
- * 순탄소 = 누적 발생 탄소 − 그 시즌에 모은 공기  (공기가 더 많으면 0 아래로 내려가지 않고 지구는 맑음)
- * 오염도 = 순탄소 / carbon_capacity (0 = 맑은 지구, 1 = 완전히 붉게 달아오른 지구)
+ * 순탄소 = 누적 발생 탄소 − 그 시즌에 모은 공기  (공기가 더 많으면 0 아래로 내려가지 않고 지구는 시원함)
+ * 온난화 지수 = 순탄소 / carbon_capacity (0 = 안정, 1 = 임계점을 넘어선 지구)
+ * 이야기용 지구 온도 상승 = 온난화 지수 × 3.0°C (실제 기후 수치가 아니라 화면용 눈금)
  */
 function earthOf(carbonPerHour: unknown, capacity: unknown, startedAt: unknown, air: number, nowMs = Date.now()) {
   const cph = Math.max(0, Number(carbonPerHour ?? 1) || 0);
@@ -217,11 +218,11 @@ function earthOf(carbonPerHour: unknown, capacity: unknown, startedAt: unknown, 
   const hours = Math.floor(elapsed / 3600);
   const emitted = Math.round(hours * cph * 10) / 10;
   const net = Math.round((emitted - air) * 10) / 10;
-  // 지구가 붉어지는 정도 — 탄소가 carbon_capacity 보다 많아지면 '발생 탄소 대비 아직 막지 못한 몫'으로 잰다
-  // (그래야 시즌이 길어져도 늘 새빨간 채로 굳지 않고, 공기가 늘수록 눈에 띄게 맑아진다)
+  // 온난화가 깊어지는 정도 — 탄소가 carbon_capacity 보다 많아지면 '발생 탄소 대비 아직 막지 못한 몫'으로 잰다
+  // (그래야 시즌이 길어져도 늘 임계점에 붙어 있지 않고, 공기가 늘수록 눈에 띄게 시원해진다)
   const denom = Math.max(cap, emitted > 0 ? emitted : cap);
-  const pollution = Math.max(0, Math.min(1, net / denom));
-  const state = pollution < 0.05 ? 'clean' : pollution < 0.35 ? 'watch' : pollution < 0.7 ? 'smog' : 'critical';
+  const warming = Math.max(0, Math.min(1, net / denom));
+  const state = warming < 0.05 ? 'stable' : warming < 0.35 ? 'warming' : warming < 0.7 ? 'crisis' : 'boiling';
   return {
     carbon_per_hour: cph,
     carbon_capacity: cap,
@@ -231,8 +232,9 @@ function earthOf(carbonPerHour: unknown, capacity: unknown, startedAt: unknown, 
     emitted,
     air,
     net,
-    pollution: Math.round(pollution * 1000) / 1000,
-    pollution_pct: Math.round(pollution * 100),
+    warming: Math.round(warming * 1000) / 1000,
+    warming_pct: Math.round(warming * 100),
+    warming_c: Math.round(warming * 30) / 10,
     state,
   };
 }
@@ -975,7 +977,7 @@ Deno.serve(async (req) => {
       return json(req, 201, { ok: true, season: row });
     }
 
-    // 지구 설정 — 시간당 탄소·완전히 붉어지는 탄소량·기준 시각 리셋 (관리자)
+    // 지구 설정 — 시간당 탄소·임계점에 이르는 탄소량·기준 시각 리셋 (관리자)
     if (parts[0] === 'seasons' && parts[1] && parts[2] === 'earth' && req.method === 'POST') {
       requireAdmin();
       const id = idOf(parts[1]);
@@ -991,7 +993,7 @@ Deno.serve(async (req) => {
       }
       if (body.carbon_capacity !== undefined) {
         const n = Number(body.carbon_capacity);
-        if (!Number.isFinite(n) || n <= 0 || n > 100000) return json(req, 400, { error: '지구가 붉어지는 탄소량은 0보다 큰 숫자로 적어 주세요.' });
+        if (!Number.isFinite(n) || n <= 0 || n > 100000) return json(req, 400, { error: '임계점에 이르는 탄소량은 0보다 큰 숫자로 적어 주세요.' });
         values.push(Math.round(n * 100) / 100); patch.push(`carbon_capacity = $${values.length}`);
       }
       if (body.reset === true) {

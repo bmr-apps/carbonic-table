@@ -322,7 +322,7 @@ alter table carbonic_table.seasons add column if not exists carbon_per_hour nume
   `alter table carbonic_table.seasons add constraint seasons_capacity_chk check (carbon_capacity > 0 and carbon_capacity <= 100000)`,
 
   `comment on column carbonic_table.seasons.carbon_per_hour is '지구에 한 시간마다 쌓이는 탄소 (관리자가 시즌마다 조정)'`,
-  `comment on column carbonic_table.seasons.carbon_capacity is '지구가 완전히 붉게 달아오르는 순탄소 양 — 이 값으로 오염도를 0~100%로 환산'`,
+  `comment on column carbonic_table.seasons.carbon_capacity is '임계점에 이르는 순탄소 양 — 이 값으로 온난화 지수를 0~100%로 환산'`,
   `comment on column carbonic_table.seasons.earth_started_at is '탄소를 세기 시작한 시각 (리셋하면 지금으로 바뀐다)'`,
 
   `-- 2) 사진 칸

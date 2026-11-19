@@ -791,22 +791,38 @@ label.check { display: inline-flex; align-items: center; gap: 8px; font-size: 13
 .earth-card.empty-earth { display: block; }
 .earth-figure { position: relative; display: grid; place-items: center; background: var(--cream-2); border: var(--bw) solid var(--line); padding: 8px 8px 24px; }
 .earth-svg { width: 100%; max-width: 100%; height: auto; display: block; }
-.earth-card.smog .earth-svg { animation: earth-pulse 5s ease-in-out infinite; }
-.earth-card.critical .earth-svg { animation: earth-pulse 2.6s ease-in-out infinite; }
+.earth-card.crisis .earth-svg { animation: earth-pulse 5s ease-in-out infinite; }
+.earth-card.boiling .earth-svg { animation: earth-pulse 2.6s ease-in-out infinite; }
 @keyframes earth-pulse { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-3px) scale(1.012); } }
+
+/* 자전 — 대륙과 구름이 서로 다른 속도로 흘러 실제로 도는 지구처럼 보입니다.
+   같은 그림 2벌을 240(지구 그림 좌표)만큼 이어 붙여 translateX 로 끊김 없이 돌립니다.
+   다시 그릴 때의 시작점(animation-delay)은 earth.js 의 syncEarthSpin 이 시각에 맞춰 잡아 줍니다. */
+.earth-spin { will-change: transform; }
+.earth-spin-land { animation: earth-spin 34s linear infinite; }
+.earth-spin-clouds { animation: earth-spin 21s linear infinite; }
+@keyframes earth-spin { from { transform: translateX(0); } to { transform: translateX(-240px); } }
+
+/* 자전하는 대륙·구름은 CSS transform 을 쓰는 순간 별도의 쌓임 맥락이 되어, DOM 뒤에 있는 빙하·조명보다
+   위에 그려집니다. 그래서 고정 층(빙하·빛·열기)에도 같은 쌓임 맥락을 주어 DOM 순서대로(빙하 → 빛) 올라오게 합니다. */
+.earth-ice, .earth-overlay { transform: translate(0, 0); }
 .earth-badge {
   position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
   border: 1.5px solid #000; background: var(--surface); color: #000;
   padding: 1px 9px; font-size: 12px; font-weight: 900; white-space: nowrap;
 }
-.earth-badge.clean { background: #d5e9f8; }
-.earth-badge.watch { background: #f5eccd; }
-.earth-badge.smog { background: #f4ddcf; }
-.earth-badge.critical { background: #f6c4b7; }
+.earth-badge.stable { background: #d5e9f8; }
+.earth-badge.warming { background: #f5eccd; }
+.earth-badge.crisis { background: #f4ddcf; }
+.earth-badge.boiling { background: #f6c4b7; }
 .earth-data { display: grid; gap: 10px; min-width: 0; }
 .earth-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .earth-head b { font-size: 15px; font-weight: 900; }
 .earth-pct { margin-left: auto; font-size: 12px; font-weight: 900; border: 1.5px solid var(--line); padding: 1px 8px; background: var(--surface-2); }
+.earth-temp { font-size: 12px; font-weight: 900; border: 1.5px solid var(--line); padding: 1px 8px; background: #e3f1fb; font-variant-numeric: tabular-nums; }
+.earth-temp.warming { background: #f5eccd; }
+.earth-temp.crisis { background: #f4ddcf; }
+.earth-temp.boiling { background: #f6c4b7; }
 .earth-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1.5px solid var(--line); }
 .earth-stat { padding: 8px 10px; border-right: 1.5px solid var(--line); min-width: 0; }
 .earth-stat:last-child { border-right: 0; }
@@ -829,10 +845,10 @@ label.check { display: inline-flex; align-items: center; gap: 8px; font-size: 13
 .earth-steps { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 6px; font-size: 12px; font-weight: 700; color: var(--muted); }
 .earth-steps li { display: flex; align-items: center; gap: 8px; }
 .earth-steps li span { width: 14px; height: 14px; border: 1.5px solid #000; flex: none; }
-.earth-steps .s-clean span { background: #9ec9e6; }
-.earth-steps .s-watch span { background: #e8d488; }
-.earth-steps .s-smog span { background: #e8a184; }
-.earth-steps .s-critical span { background: #d9472e; }
+.earth-steps .s-stable span { background: #9ec9e6; }
+.earth-steps .s-warming span { background: #e8d488; }
+.earth-steps .s-crisis span { background: #e8a184; }
+.earth-steps .s-boiling span { background: #d9472e; }
 
 /* ---------- 내 실천 모아보기 ---------- */
 .mine-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
@@ -913,6 +929,12 @@ label.check { display: inline-flex; align-items: center; gap: 8px; font-size: 13
   .feed-photo { max-width: 100%; height: 160px; width: 100%; }
 }
 
+/* ---------- 움직임을 줄이는 설정을 고른 사람에게는 지구를 돌리지 않습니다 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .earth-spin-land, .earth-spin-clouds { animation: none; }
+  .earth-card.crisis .earth-svg, .earth-card.boiling .earth-svg { animation: none; }
+}
+
 /* ---------- 다크모드 보정 (밝은 바탕 조각이 어두운 화면에서 눈부시지 않게) ---------- */
 [data-theme="dark"] .tile.hot { background: #16263a; }
 [data-theme="dark"] .react.on { background: #1b3350; }
@@ -921,4 +943,8 @@ label.check { display: inline-flex; align-items: center; gap: 8px; font-size: 13
 [data-theme="dark"] .badge.open { background: #bcd9f2; }
 [data-theme="dark"] .toast.ok { background: #cfe5f8; }
 [data-theme="dark"] .earth-figure { background: #0d1c2b; }
+[data-theme="dark"] .earth-temp { background: #0f2438; }
+[data-theme="dark"] .earth-temp.warming { background: #2c2a1c; }
+[data-theme="dark"] .earth-temp.crisis { background: #33221c; }
+[data-theme="dark"] .earth-temp.boiling { background: #3d1d15; }
 [data-theme="dark"] .hero-actions .btn.ghost, [data-theme="dark"] .hero-actions .btn:not(.primary) { background: #0f2438; color: #eaf5ff; }
