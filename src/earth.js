@@ -207,9 +207,9 @@ function personArt(state) {
         ? `${drop(9.2, -26, .85)} ${drop(-9.4, -27.4, .7)}`
         : `<path d="M-9-27.4q1.6-3.4 0-6.8M9-27.4q1.6-3.4 0-6.8" fill="none" stroke="#ff6a4d" stroke-width="1.2" stroke-linecap="round" opacity=".85"/>
            <path d="M-12.4-24.6q1.4-2.8 0-5.6M12.4-24.6q1.4-2.8 0-5.6" fill="none" stroke="#ff8f5e" stroke-width="1" stroke-linecap="round" opacity=".75"/>`;
-  return `<g class="earth-person" transform="translate(${KOREA.x.toFixed(1)} ${(KOREA.y + 1).toFixed(1)})">
+  return `<g class="earth-person" filter="url(#earth-pop)" transform="translate(${KOREA.x.toFixed(1)} ${(KOREA.y + 1).toFixed(1)})">
     <ellipse cx="0" cy="1.6" rx="7.4" ry="2.3" fill="#0a2333" opacity=".2"/>
-    <g transform="scale(.82)${sway}">
+    <g transform="scale(.9)${sway}">
       ${personArms(state)}
       <path d="M-3.4-6.6h2.8v6.4h-2.8z" fill="${m.pants}"/>
       <path d="M.6-6.6h2.8v6.4h-2.8z" fill="${m.pants}"/>
@@ -256,9 +256,9 @@ function bearArt(state, x, y, t) {
   const body = state === 'boiling'
     ? `<ellipse cx="0" cy="-6.4" rx="8.4" ry="5" fill="${fur}" stroke="${line}" stroke-width="1.2"/>`
     : `<ellipse cx="0" cy="-6.6" rx="7.8" ry="6.2" fill="${fur}" stroke="${line}" stroke-width="1.2"/>`;
-  return `<g class="earth-bear" transform="translate(${x.toFixed(1)} ${y.toFixed(1)})">
+  return `<g class="earth-bear" filter="url(#earth-pop)" transform="translate(${x.toFixed(1)} ${y.toFixed(1)})">
     <ellipse cx="0" cy="1.2" rx="8.6" ry="2.4" fill="#0a2333" opacity="${(0.18 + 0.12 * t).toFixed(2)}"/>
-    <g transform="scale(.84)">
+    <g transform="scale(.92)">
       ${body}
       <ellipse cx="0" cy="-4.6" rx="4.2" ry="3.6" fill="${mixColor('#e8f1f8', '#f7d3bf', t * 0.8)}"/>
       <g transform="translate(-4.6 -17)${earR}"><circle cx="0" cy="0" r="2.2" fill="${fur}" stroke="${line}" stroke-width="1"/><circle cx="0" cy="0" r="1.1" fill="#f3c9cc"/></g>
@@ -436,6 +436,9 @@ export function earthSvg(p) {
         <stop offset="55%" stop-color="#ffffff" stop-opacity="0.04"/>
         <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
       </linearGradient>
+      <filter id="earth-pop" x="-40%" y="-40%" width="180%" height="180%">
+        <feDropShadow dx="0" dy="0" stdDeviation="1.2" flood-color="#ffffff" flood-opacity="0.9"/>
+      </filter>
       <filter id="earth-heat" x="-40%" y="-40%" width="180%" height="180%">
         <feGaussianBlur stdDeviation="4"/>
       </filter>
