@@ -177,9 +177,9 @@ function personArms(state) {
   const m = PERSON[state];
   const st = `stroke="${m.shirt}" stroke-width="2.3" stroke-linecap="round"`;
   if (state === 'stable') {
-    return `<path d="M-5-14.4-8.4-19.4" ${st}/><path d="M5-14.4 8.4-19.4" ${st}/>
-      <circle cx="-8.7" cy="-19.9" r="1.25" fill="${m.skin}" stroke="#4a2f1e" stroke-width=".5"/>
-      <circle cx="8.7" cy="-19.9" r="1.25" fill="${m.skin}" stroke="#4a2f1e" stroke-width=".5"/>`;
+    return `<path d="M-5-14.4-9-20.6" ${st}/><path d="M5-14.4 9-20.6" ${st}/>
+      <circle cx="-9.3" cy="-21.2" r="1.25" fill="${m.skin}" stroke="#4a2f1e" stroke-width=".5"/>
+      <circle cx="9.3" cy="-21.2" r="1.25" fill="${m.skin}" stroke="#4a2f1e" stroke-width=".5"/>`;
   }
   if (state === 'warming') {
     return `<path d="M-5-14.2-7.6-10.2" ${st}/><path d="M5-14.2 7.4-16.8" ${st}/>

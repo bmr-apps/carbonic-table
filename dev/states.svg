@@ -117,9 +117,9 @@
         <g class="earth-person" transform="translate(195.2 91.1)">
     <ellipse cx="0" cy="1.6" rx="7.4" ry="2.3" fill="#0a2333" opacity=".2"/>
     <g transform="scale(.82)">
-      <path d="M-5-14.4-8.4-19.4" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/><path d="M5-14.4 8.4-19.4" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/>
-      <circle cx="-8.7" cy="-19.9" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
-      <circle cx="8.7" cy="-19.9" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
+      <path d="M-5-14.4-9-20.6" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/><path d="M5-14.4 9-20.6" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/>
+      <circle cx="-9.3" cy="-21.2" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
+      <circle cx="9.3" cy="-21.2" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
       <path d="M-3.4-6.6h2.8v6.4h-2.8z" fill="#2b4f74"/>
       <path d="M.6-6.6h2.8v6.4h-2.8z" fill="#2b4f74"/>
       <path d="M-5.6-15.6q0-2.6 2.6-2.6h6q2.6 0 2.6 2.6v7.2q0 2.6-2.6 2.6h-6q-2.6 0-2.6-2.6z"
@@ -193,9 +193,9 @@
         <g class="earth-person" transform="translate(195.2 91.1)">
     <ellipse cx="0" cy="1.6" rx="7.4" ry="2.3" fill="#0a2333" opacity=".2"/>
     <g transform="scale(.82)">
-      <path d="M-5-14.4-8.4-19.4" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/><path d="M5-14.4 8.4-19.4" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/>
-      <circle cx="-8.7" cy="-19.9" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
-      <circle cx="8.7" cy="-19.9" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
+      <path d="M-5-14.4-9-20.6" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/><path d="M5-14.4 9-20.6" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/>
+      <circle cx="-9.3" cy="-21.2" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
+      <circle cx="9.3" cy="-21.2" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
       <path d="M-3.4-6.6h2.8v6.4h-2.8z" fill="#2b4f74"/>
       <path d="M.6-6.6h2.8v6.4h-2.8z" fill="#2b4f74"/>
       <path d="M-5.6-15.6q0-2.6 2.6-2.6h6q2.6 0 2.6 2.6v7.2q0 2.6-2.6 2.6h-6q-2.6 0-2.6-2.6z"
@@ -426,9 +426,9 @@
         <g class="earth-person" transform="translate(195.2 91.1)">
     <ellipse cx="0" cy="1.6" rx="7.4" ry="2.3" fill="#0a2333" opacity=".2"/>
     <g transform="scale(.82)">
-      <path d="M-5-14.4-8.4-19.4" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/><path d="M5-14.4 8.4-19.4" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/>
-      <circle cx="-8.7" cy="-19.9" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
-      <circle cx="8.7" cy="-19.9" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
+      <path d="M-5-14.4-9-20.6" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/><path d="M5-14.4 9-20.6" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/>
+      <circle cx="-9.3" cy="-21.2" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
+      <circle cx="9.3" cy="-21.2" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
       <path d="M-3.4-6.6h2.8v6.4h-2.8z" fill="#2b4f74"/>
       <path d="M.6-6.6h2.8v6.4h-2.8z" fill="#2b4f74"/>
       <path d="M-5.6-15.6q0-2.6 2.6-2.6h6q2.6 0 2.6 2.6v7.2q0 2.6-2.6 2.6h-6q-2.6 0-2.6-2.6z"
@@ -502,9 +502,9 @@
         <g class="earth-person" transform="translate(195.2 91.1)">
     <ellipse cx="0" cy="1.6" rx="7.4" ry="2.3" fill="#0a2333" opacity=".2"/>
     <g transform="scale(.82)">
-      <path d="M-5-14.4-8.4-19.4" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/><path d="M5-14.4 8.4-19.4" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/>
-      <circle cx="-8.7" cy="-19.9" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
-      <circle cx="8.7" cy="-19.9" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
+      <path d="M-5-14.4-9-20.6" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/><path d="M5-14.4 9-20.6" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/>
+      <circle cx="-9.3" cy="-21.2" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
+      <circle cx="9.3" cy="-21.2" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
       <path d="M-3.4-6.6h2.8v6.4h-2.8z" fill="#2b4f74"/>
       <path d="M.6-6.6h2.8v6.4h-2.8z" fill="#2b4f74"/>
       <path d="M-5.6-15.6q0-2.6 2.6-2.6h6q2.6 0 2.6 2.6v7.2q0 2.6-2.6 2.6h-6q-2.6 0-2.6-2.6z"
@@ -735,9 +735,9 @@
         <g class="earth-person" transform="translate(195.2 91.1)">
     <ellipse cx="0" cy="1.6" rx="7.4" ry="2.3" fill="#0a2333" opacity=".2"/>
     <g transform="scale(.82)">
-      <path d="M-5-14.4-8.4-19.4" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/><path d="M5-14.4 8.4-19.4" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/>
-      <circle cx="-8.7" cy="-19.9" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
-      <circle cx="8.7" cy="-19.9" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
+      <path d="M-5-14.4-9-20.6" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/><path d="M5-14.4 9-20.6" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/>
+      <circle cx="-9.3" cy="-21.2" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
+      <circle cx="9.3" cy="-21.2" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
       <path d="M-3.4-6.6h2.8v6.4h-2.8z" fill="#2b4f74"/>
       <path d="M.6-6.6h2.8v6.4h-2.8z" fill="#2b4f74"/>
       <path d="M-5.6-15.6q0-2.6 2.6-2.6h6q2.6 0 2.6 2.6v7.2q0 2.6-2.6 2.6h-6q-2.6 0-2.6-2.6z"
@@ -811,9 +811,9 @@
         <g class="earth-person" transform="translate(195.2 91.1)">
     <ellipse cx="0" cy="1.6" rx="7.4" ry="2.3" fill="#0a2333" opacity=".2"/>
     <g transform="scale(.82)">
-      <path d="M-5-14.4-8.4-19.4" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/><path d="M5-14.4 8.4-19.4" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/>
-      <circle cx="-8.7" cy="-19.9" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
-      <circle cx="8.7" cy="-19.9" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
+      <path d="M-5-14.4-9-20.6" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/><path d="M5-14.4 9-20.6" stroke="#2fae5b" stroke-width="2.3" stroke-linecap="round"/>
+      <circle cx="-9.3" cy="-21.2" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
+      <circle cx="9.3" cy="-21.2" r="1.25" fill="#ffd8b2" stroke="#4a2f1e" stroke-width=".5"/>
       <path d="M-3.4-6.6h2.8v6.4h-2.8z" fill="#2b4f74"/>
       <path d="M.6-6.6h2.8v6.4h-2.8z" fill="#2b4f74"/>
       <path d="M-5.6-15.6q0-2.6 2.6-2.6h6q2.6 0 2.6 2.6v7.2q0 2.6-2.6 2.6h-6q-2.6 0-2.6-2.6z"
