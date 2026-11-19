@@ -25,7 +25,7 @@
         <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
       </linearGradient>
       <filter id="earth-pop-s0" x="-40%" y="-40%" width="180%" height="180%">
-        <feDropShadow dx="0" dy="0" stdDeviation="1.2" flood-color="#ffffff" flood-opacity="0.9"/>
+        <feDropShadow dx="0" dy="0" stdDeviation="0.85" flood-color="#ffffff" flood-opacity="0.6"/>
       </filter>
       <filter id="earth-heat-s0" x="-40%" y="-40%" width="180%" height="180%">
         <feGaussianBlur stdDeviation="4"/>
@@ -337,7 +337,7 @@
         <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
       </linearGradient>
       <filter id="earth-pop-s0" x="-40%" y="-40%" width="180%" height="180%">
-        <feDropShadow dx="0" dy="0" stdDeviation="1.2" flood-color="#ffffff" flood-opacity="0.9"/>
+        <feDropShadow dx="0" dy="0" stdDeviation="0.85" flood-color="#ffffff" flood-opacity="0.6"/>
       </filter>
       <filter id="earth-heat-s0" x="-40%" y="-40%" width="180%" height="180%">
         <feGaussianBlur stdDeviation="4"/>
@@ -649,7 +649,7 @@
         <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
       </linearGradient>
       <filter id="earth-pop-s0" x="-40%" y="-40%" width="180%" height="180%">
-        <feDropShadow dx="0" dy="0" stdDeviation="1.2" flood-color="#ffffff" flood-opacity="0.9"/>
+        <feDropShadow dx="0" dy="0" stdDeviation="0.85" flood-color="#ffffff" flood-opacity="0.6"/>
       </filter>
       <filter id="earth-heat-s0" x="-40%" y="-40%" width="180%" height="180%">
         <feGaussianBlur stdDeviation="4"/>
@@ -964,7 +964,7 @@
         <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
       </linearGradient>
       <filter id="earth-pop-s1" x="-40%" y="-40%" width="180%" height="180%">
-        <feDropShadow dx="0" dy="0" stdDeviation="1.2" flood-color="#ffffff" flood-opacity="0.9"/>
+        <feDropShadow dx="0" dy="0" stdDeviation="0.85" flood-color="#ffffff" flood-opacity="0.6"/>
       </filter>
       <filter id="earth-heat-s1" x="-40%" y="-40%" width="180%" height="180%">
         <feGaussianBlur stdDeviation="4"/>
@@ -1281,7 +1281,7 @@
         <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
       </linearGradient>
       <filter id="earth-pop-s1" x="-40%" y="-40%" width="180%" height="180%">
-        <feDropShadow dx="0" dy="0" stdDeviation="1.2" flood-color="#ffffff" flood-opacity="0.9"/>
+        <feDropShadow dx="0" dy="0" stdDeviation="0.85" flood-color="#ffffff" flood-opacity="0.6"/>
       </filter>
       <filter id="earth-heat-s1" x="-40%" y="-40%" width="180%" height="180%">
         <feGaussianBlur stdDeviation="4"/>
@@ -1598,7 +1598,7 @@
         <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
       </linearGradient>
       <filter id="earth-pop-s1" x="-40%" y="-40%" width="180%" height="180%">
-        <feDropShadow dx="0" dy="0" stdDeviation="1.2" flood-color="#ffffff" flood-opacity="0.9"/>
+        <feDropShadow dx="0" dy="0" stdDeviation="0.85" flood-color="#ffffff" flood-opacity="0.6"/>
       </filter>
       <filter id="earth-heat-s1" x="-40%" y="-40%" width="180%" height="180%">
         <feGaussianBlur stdDeviation="4"/>
@@ -1918,7 +1918,7 @@
         <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
       </linearGradient>
       <filter id="earth-pop-s2" x="-40%" y="-40%" width="180%" height="180%">
-        <feDropShadow dx="0" dy="0" stdDeviation="1.2" flood-color="#ffffff" flood-opacity="0.9"/>
+        <feDropShadow dx="0" dy="0" stdDeviation="0.85" flood-color="#ffffff" flood-opacity="0.6"/>
       </filter>
       <filter id="earth-heat-s2" x="-40%" y="-40%" width="180%" height="180%">
         <feGaussianBlur stdDeviation="4"/>
@@ -2246,7 +2246,7 @@
         <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
       </linearGradient>
       <filter id="earth-pop-s2" x="-40%" y="-40%" width="180%" height="180%">
-        <feDropShadow dx="0" dy="0" stdDeviation="1.2" flood-color="#ffffff" flood-opacity="0.9"/>
+        <feDropShadow dx="0" dy="0" stdDeviation="0.85" flood-color="#ffffff" flood-opacity="0.6"/>
       </filter>
       <filter id="earth-heat-s2" x="-40%" y="-40%" width="180%" height="180%">
         <feGaussianBlur stdDeviation="4"/>
@@ -2574,7 +2574,7 @@
         <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
       </linearGradient>
       <filter id="earth-pop-s2" x="-40%" y="-40%" width="180%" height="180%">
-        <feDropShadow dx="0" dy="0" stdDeviation="1.2" flood-color="#ffffff" flood-opacity="0.9"/>
+        <feDropShadow dx="0" dy="0" stdDeviation="0.85" flood-color="#ffffff" flood-opacity="0.6"/>
       </filter>
       <filter id="earth-heat-s2" x="-40%" y="-40%" width="180%" height="180%">
         <feGaussianBlur stdDeviation="4"/>
@@ -2905,7 +2905,7 @@
         <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
       </linearGradient>
       <filter id="earth-pop-s3" x="-40%" y="-40%" width="180%" height="180%">
-        <feDropShadow dx="0" dy="0" stdDeviation="1.2" flood-color="#ffffff" flood-opacity="0.9"/>
+        <feDropShadow dx="0" dy="0" stdDeviation="0.85" flood-color="#ffffff" flood-opacity="0.6"/>
       </filter>
       <filter id="earth-heat-s3" x="-40%" y="-40%" width="180%" height="180%">
         <feGaussianBlur stdDeviation="4"/>
@@ -3236,7 +3236,7 @@
         <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
       </linearGradient>
       <filter id="earth-pop-s3" x="-40%" y="-40%" width="180%" height="180%">
-        <feDropShadow dx="0" dy="0" stdDeviation="1.2" flood-color="#ffffff" flood-opacity="0.9"/>
+        <feDropShadow dx="0" dy="0" stdDeviation="0.85" flood-color="#ffffff" flood-opacity="0.6"/>
       </filter>
       <filter id="earth-heat-s3" x="-40%" y="-40%" width="180%" height="180%">
         <feGaussianBlur stdDeviation="4"/>
@@ -3567,7 +3567,7 @@
         <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
       </linearGradient>
       <filter id="earth-pop-s3" x="-40%" y="-40%" width="180%" height="180%">
-        <feDropShadow dx="0" dy="0" stdDeviation="1.2" flood-color="#ffffff" flood-opacity="0.9"/>
+        <feDropShadow dx="0" dy="0" stdDeviation="0.85" flood-color="#ffffff" flood-opacity="0.6"/>
       </filter>
       <filter id="earth-heat-s3" x="-40%" y="-40%" width="180%" height="180%">
         <feGaussianBlur stdDeviation="4"/>

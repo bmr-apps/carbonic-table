@@ -437,7 +437,7 @@ export function earthSvg(p) {
         <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
       </linearGradient>
       <filter id="earth-pop" x="-40%" y="-40%" width="180%" height="180%">
-        <feDropShadow dx="0" dy="0" stdDeviation="1.2" flood-color="#ffffff" flood-opacity="0.9"/>
+        <feDropShadow dx="0" dy="0" stdDeviation="0.85" flood-color="#ffffff" flood-opacity="0.6"/>
       </filter>
       <filter id="earth-heat" x="-40%" y="-40%" width="180%" height="180%">
         <feGaussianBlur stdDeviation="4"/>
