@@ -232,7 +232,9 @@ const BEAR_EYES = {
   boiling: `<path d="M-3.1-14.6l2.2 2.2M-.9-14.6l-2.2 2.2M.9-14.6l2.2 2.2M3.1-14.6l-2.2 2.2" fill="none" stroke="#3a2f2a" stroke-width=".8" stroke-linecap="round"/>`,
 };
 
-function bearArt(state, x, y) {
+function bearArt(state, x, y, t) {
+  const fur = mixColor('#fcfeff', '#ffe4d4', t * 0.85);          // 뜨거워지면 살짝 붉은 기운
+  const line = mixColor('#a9bdcd', '#6f5647', Math.min(1, t * 1.05)); // 배경이 붉어져도 곰이 보이게 선을 진하게
   const ear = state === 'crisis' || state === 'boiling' ? ' rotate(24)' : '';
   const earR = state === 'crisis' || state === 'boiling' ? ' rotate(-24)' : '';
   const face = state === 'stable'
@@ -252,21 +254,21 @@ function bearArt(state, x, y) {
         ? `${drop(-7.6, -21.4, .9)} ${drop(7.6, -19.6, .75)}`
         : `<path d="M-8.4-24q1.6-3.4 0-6.8M8.4-24q1.6-3.4 0-6.8" fill="none" stroke="#ff6a4d" stroke-width="1.1" stroke-linecap="round" opacity=".8"/>`;
   const body = state === 'boiling'
-    ? `<ellipse cx="0" cy="-6.4" rx="8.4" ry="5" fill="#fcfeff" stroke="#b9cbd8" stroke-width="1.1"/>`
-    : `<ellipse cx="0" cy="-6.6" rx="7.8" ry="6.2" fill="#fcfeff" stroke="#b9cbd8" stroke-width="1.1"/>`;
+    ? `<ellipse cx="0" cy="-6.4" rx="8.4" ry="5" fill="${fur}" stroke="${line}" stroke-width="1.2"/>`
+    : `<ellipse cx="0" cy="-6.6" rx="7.8" ry="6.2" fill="${fur}" stroke="${line}" stroke-width="1.2"/>`;
   return `<g class="earth-bear" transform="translate(${x.toFixed(1)} ${y.toFixed(1)})">
-    <ellipse cx="0" cy="1.2" rx="8.6" ry="2.4" fill="#0a2333" opacity=".18"/>
+    <ellipse cx="0" cy="1.2" rx="8.6" ry="2.4" fill="#0a2333" opacity="${(0.18 + 0.12 * t).toFixed(2)}"/>
     <g transform="scale(.84)">
       ${body}
-      <ellipse cx="0" cy="-4.6" rx="4.2" ry="3.6" fill="#e8f1f8"/>
-      <g transform="translate(-4.6 -17)${earR}"><circle cx="0" cy="0" r="2.2" fill="#fbfdff" stroke="#b9cbd8" stroke-width=".9"/><circle cx="0" cy="0" r="1.1" fill="#f3c9cc"/></g>
-      <g transform="translate(4.6 -17)${ear}"><circle cx="0" cy="0" r="2.2" fill="#fbfdff" stroke="#b9cbd8" stroke-width=".9"/><circle cx="0" cy="0" r="1.1" fill="#f3c9cc"/></g>
-      <circle cx="0" cy="-13.4" r="4.7" fill="#fcfeff" stroke="#b9cbd8" stroke-width="1.1"/>
-      <ellipse cx="0" cy="-11.6" rx="2.7" ry="2" fill="#f2f7fb" stroke="#d5e2ec" stroke-width=".5"/>
+      <ellipse cx="0" cy="-4.6" rx="4.2" ry="3.6" fill="${mixColor('#e8f1f8', '#f7d3bf', t * 0.8)}"/>
+      <g transform="translate(-4.6 -17)${earR}"><circle cx="0" cy="0" r="2.2" fill="${fur}" stroke="${line}" stroke-width="1"/><circle cx="0" cy="0" r="1.1" fill="#f3c9cc"/></g>
+      <g transform="translate(4.6 -17)${ear}"><circle cx="0" cy="0" r="2.2" fill="${fur}" stroke="${line}" stroke-width="1"/><circle cx="0" cy="0" r="1.1" fill="#f3c9cc"/></g>
+      <circle cx="0" cy="-13.4" r="4.7" fill="${fur}" stroke="${line}" stroke-width="1.2"/>
+      <ellipse cx="0" cy="-11.6" rx="2.7" ry="2" fill="${mixColor('#f2f7fb', '#ffe3d3', t * 0.7)}" stroke="${line}" stroke-width=".45"/>
       <ellipse cx="0" cy="-12.4" rx="1.15" ry=".8" fill="#33383f"/>
       ${BEAR_EYES[state]}
-      <ellipse cx="-5.2" cy="-2" rx="2.9" ry="2" fill="#fcfeff" stroke="#c4d4e0" stroke-width=".8"/>
-      <ellipse cx="5.2" cy="-2" rx="2.9" ry="2" fill="#fcfeff" stroke="#c4d4e0" stroke-width=".8"/>
+      <ellipse cx="-5.2" cy="-2" rx="2.9" ry="2" fill="${fur}" stroke="${line}" stroke-width=".9"/>
+      <ellipse cx="5.2" cy="-2" rx="2.9" ry="2" fill="${fur}" stroke="${line}" stroke-width=".9"/>
       ${face}
     </g>
     ${decor}
@@ -459,7 +461,7 @@ export function earthSvg(p) {
       ${iceArt(c, t, state)}
 
       <!-- 북극곰 (빙하 위 · 고정) -->
-      ${bearArt(state, 120, bearY)}
+      ${bearArt(state, 120, bearY, t)}
 
       <!-- 고정 조명 — 자전해도 빛은 늘 같은 자리에서 들어옵니다 -->
       <g class="earth-overlay">
