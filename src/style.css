@@ -785,7 +785,7 @@ label.check { display: inline-flex; align-items: center; gap: 8px; font-size: 13
 .earth-band { display: grid; grid-template-columns: minmax(0, 2.05fr) minmax(0, 1fr); gap: 14px; margin-top: 18px; }
 .earth-card {
   border: var(--bw) solid var(--line); background: var(--surface); box-shadow: var(--shadow-sm);
-  display: grid; grid-template-columns: minmax(0, 264px) minmax(0, 1fr); gap: 18px;
+  display: grid; grid-template-columns: minmax(0, 296px) minmax(0, 1fr); gap: 18px;
   padding: 18px; align-items: center;
 }
 .earth-card.empty-earth { display: block; }
@@ -918,7 +918,7 @@ label.check { display: inline-flex; align-items: center; gap: 8px; font-size: 13
 }
 @media (max-width: 760px) {
   .earth-card { grid-template-columns: 1fr; padding: 14px; }
-  .earth-figure { max-width: 260px; margin: 0 auto; }
+  .earth-figure { max-width: 300px; margin: 0 auto; }
   .earth-stats { grid-template-columns: 1fr; }
   .earth-stat { border-right: 0; border-bottom: 1.5px solid var(--line); display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
   .earth-stat:last-child { border-bottom: 0; }

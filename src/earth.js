@@ -1,10 +1,12 @@
-// 지구 그림 (v5) — 실제 대륙 · 부드러운 극지방 빙하 · 사람과 북극곰의 행복도
+// 지구 그림 (v6) — 실제 대륙 · 부드러운 극지방 빙하 · 기후 위기의 원인과 재해
 //  · 대륙: Natural Earth 실제 해안선(src/land-data.js)을 자전 띠(240폭)에 맞춰 그립니다.
 //    위도에 따라 극지→툰드라→숲→사막→열대 순으로 색이 이어져, 한반도·일본·아프리카가 눈에 익은 모양으로 보입니다.
 //  · 빙하: 안정일 때 북극·남극의 얼음이 적당한 크기로 머물고, 바다 쪽 경계는 딱딱한 선 대신
 //    흐릿한 그라데이션으로 바다에 녹아듭니다. 온난화가 깊어질수록 얼음이 줄어듭니다.
-//  · 사람(한반도 위치 · 대륙과 함께 자전)과 북극곰(빙하 위)의 표정이 4단계마다 달라집니다.
-//    안정 = 활짝 웃음 + 하트, 온난화 주의 = 땀 한 방울, 위기 = 땀 뻘뻘, 폭염 = 눈물·기진맥진.
+//  · 원인: 온난화가 깊어질수록 발전소 → 가축 → 자동차 → 쓰레기 순서로 대륙마다 늘어납니다.
+//  · 결과: 같은 순서로 산불·폭염·가뭄·폭설·홍수·태풍이 대륙별로 번지고,
+//    뜨거워진 바다에는 배를 드러낸 물고기와 하얗게 백화된 산호(집단 폐사)가 늘어납니다.
+//  · 모든 요소는 대륙 띠 안에 있어 지구 자전과 함께 돌아갑니다.
 import { LAND_PATHS } from './land-data.js';
 
 const hexOf = (h) => {
@@ -55,10 +57,10 @@ const LAND_BANDS = [
 
 // 지구 상태 4단계 — 기온 상승·기후 위기 이야기
 export const EARTH_STATES = {
-  stable: { label: '안정 (시원함)', note: '지구가 시원하게 숨 쉬고 있어요' },
-  warming: { label: '온난화 주의', note: '탄소가 쌓이며 기온이 올라요' },
-  crisis: { label: '기후 위기 경고', note: '빙하가 녹고 지구가 달아올라요' },
-  boiling: { label: '임계점 돌파 (폭염)', note: '지구가 한계에 닿았어요' },
+  stable: { label: '안정 (시원함)', note: '깨끗한 대륙과 바다가 숨 쉬어요' },
+  warming: { label: '온난화 주의', note: '발전소·가축이 늘며 지구 기온이 올라요' },
+  crisis: { label: '기후 위기 경고', note: '산불·폭설·폭우와 바다 폐사가 번져요' },
+  boiling: { label: '임계점 돌파 (폭염)', note: '전 세계 재해와 해양 위기가 한계에 닿았어요' },
 };
 export const earthState = (p) => {
   const t = Math.max(0, Math.min(1, Number(p) || 0));
@@ -109,7 +111,6 @@ const ART_W = 240;        // 자전 띠 한 주기의 폭
 const LAT_SCALE = 0.82;   // 위도 1도 = 0.82
 const px = (lon) => ((lon + 165) * ART_W) / 360;   // 띠 왼쪽 끝이 태평양 한가운데(lon −165)
 const py = (lat) => 120 - lat * LAT_SCALE;
-const KOREA = { x: px(127.8), y: py(36.5) };       // 한반도 — 사람이 서 있는 자리
 
 // 대륙 위에 얹는 작은 숲·산 — 실제 위치를 좌표로 옮겨 적었습니다 (숫자는 px(lon), py(lat))
 const FORESTS = [
@@ -128,152 +129,245 @@ const MOUNTAINS = [
   [px(38), py(10), 3.6, 3.4],  // 에티오피아 고원
 ];
 
-// ---------- 사람 ----------
-const PERSON = {
-  stable: { shirt: '#2fae5b', pants: '#2b4f74', skin: '#ffd8b2', cheek: '#ff9d8a' },
-  warming: { shirt: '#f2bf35', pants: '#2b4f74', skin: '#ffd8b2', cheek: '#ff9d8a' },
-  crisis: { shirt: '#ef8b3c', pants: '#2b4f74', skin: '#ffd0a4', cheek: '#e8604a' },
-  boiling: { shirt: '#df4632', pants: '#2b4f74', skin: '#ffc39a', cheek: '#d63a2a' },
+/* ==========================================================================
+   원인 요소 — 발전소 · 가축 · 자동차 · 쓰레기 (웹 스타일의 납작한 벡터 + 흰 후광)
+   ========================================================================== */
+
+// 발전소(화력) — 쌍곡선 냉각탑 + 굴뚝 + 피어오르는 연기
+const PLANT = `
+  <g class="earth-smoke">
+    <g fill="#f2f7fc" opacity=".85">
+      <ellipse cx="-.6" cy="-20.4" rx="3.4" ry="2.5"/>
+      <ellipse cx="1.4" cy="-23.6" rx="2.9" ry="2.2"/>
+      <ellipse cx="-.2" cy="-26.4" rx="2" ry="1.6"/>
+    </g>
+    <g fill="#e4ebf4" opacity=".8">
+      <circle cx="9.4" cy="-19.8" r="1.9"/>
+      <circle cx="11.8" cy="-22.4" r="2.3"/>
+      <circle cx="14.6" cy="-24" r="1.7"/>
+    </g>
+  </g>
+  <path d="M6.6 0l.5-18.6h2.4L10 0z" fill="#9aa9bb" stroke="#0f172a" stroke-width="1" stroke-linejoin="round"/>
+  <path d="M7.05-17.2h2.4v1.5h-2.4z" fill="#f8fafc" stroke="none"/>
+  <path d="M-5.4 0C-4.4-4.2-3.5-7.4-3.4-10.4-3.35-12.4-3.8-13.8-4.2-15.2H4.2C3.8-13.8 3.35-12.4 3.4-10.4 3.5-7.4 4.4-4.2 5.4 0Z"
+    fill="#dde5ee" stroke="#0f172a" stroke-width="1" stroke-linejoin="round"/>
+  <path d="M.6-15.2C.2-13.8-.25-12.4-.2-10.4-.1-7.4.8-4.2 1.8 0H5.4C4.4-4.2 3.5-7.4 3.4-10.4 3.35-12.4 3.8-13.8 4.2-15.2Z"
+    fill="#aab8c8" opacity=".75" stroke="none"/>
+  <ellipse cx="0" cy="-15.2" rx="4.2" ry="1.15" fill="#f2f7fc" stroke="#0f172a" stroke-width=".9"/>
+  <ellipse cx="0" cy="-15.2" rx="2.9" ry=".6" fill="#475569" stroke="none"/>
+  <path d="M-4.4-.1h8.8" stroke="#94a3b8" stroke-width="1.1" opacity=".9"/>
+  <path d="M-3.2-.2 0-2.8 3.2-.2" fill="none" stroke="#94a3b8" stroke-width=".8" opacity=".8"/>`;
+
+// 가축(젖소) — 얼룩·뿔·젖이 있는 옆모습
+const COW = `
+  <path d="M4.6-4.6 2.6-7 5.4-6.2Z" fill="#f8fafc" stroke="#0f172a" stroke-width=".8" stroke-linejoin="round"/>
+  <path d="M9.6-4.6 11.6-7 8.8-6.2Z" fill="#f8fafc" stroke="#0f172a" stroke-width=".8" stroke-linejoin="round"/>
+  <path d="M6.1-5.5 5.5-7.3M9.1-5.5 9.7-7.3" stroke="#a16207" stroke-width="1.1" stroke-linecap="round"/>
+  <path d="M-7.6-1.8C-7.6-4.4-6.2-5.3-3.6-5.3H1.2C3.8-5.3 5.2-4 5.2-1.2V2.2H3V5.8H1.2V2.2H-2.6V5.8H-4.4V2.2H-7.6Z"
+    fill="#f8fafc" stroke="#0f172a" stroke-width="1" stroke-linejoin="round"/>
+  <path d="M-4-5C-2-4.8-1.4-2.8-2.8-1.8-4.2-.8-5.8-1.8-5.6-3-5.5-4.1-4.9-4.9-4-5Z" fill="#1e293b"/>
+  <path d="M1.6.4C3 .4 3.7 1.6 3 2.4 2.2 3.2.8 2.8.7 1.8.6 1.1 1 .4 1.6.4Z" fill="#1e293b"/>
+  <path d="M-7.4-3C-9.2-3.4-9.8-2-9.4-.6" fill="none" stroke="#0f172a" stroke-width="1" stroke-linecap="round"/>
+  <ellipse cx="-1.4" cy="2" rx="2.2" ry="1.3" fill="#fbcfe8" stroke="#0f172a" stroke-width=".7"/>
+  <ellipse cx="7.4" cy="-2.6" rx="3.5" ry="3" fill="#f8fafc" stroke="#0f172a" stroke-width="1"/>
+  <ellipse cx="8.6" cy="-1.2" rx="2.4" ry="1.6" fill="#fbcfe8" stroke="#0f172a" stroke-width=".7"/>
+  <circle cx="8" cy="-1.2" r=".35" fill="#0f172a"/><circle cx="9.3" cy="-1.2" r=".35" fill="#0f172a"/>
+  <circle cx="6.6" cy="-3.6" r=".6" fill="#0f172a"/>`;
+
+// 자동차 — 유선형 승용차 + 배기 매연
+const CAR = `
+  <g fill="#cbd5e1" opacity=".85">
+    <circle cx="-9.6" cy="-.8" r="1.5"/>
+    <circle cx="-11.7" cy="-2.2" r="1.9"/>
+    <circle cx="-13.8" cy="-3.6" r="1.5"/>
+  </g>
+  <path d="M-7.6 2.4V.2C-7.6-.6-7.2-1-6.4-1.2l3-1.1 1.8-3.2c.5-1 1.2-1.4 2.3-1.4h2.2c1.1 0 1.8.5 2.3 1.4l1.8 3.2 3.6 1.1c.8.2 1.2.6 1.2 1.4v2.2Z"
+    fill="#ef4444" stroke="#0f172a" stroke-width="1" stroke-linejoin="round"/>
+  <path d="M-3.1-1.7-1.7-4.4c.2-.4.5-.6 1-.6h1.1v3.3Z" fill="#bae6fd" stroke="#0f172a" stroke-width=".65" stroke-linejoin="round"/>
+  <path d="M1.1-5h1c.5 0 .8.2 1 .6l1.4 2.7H1.1Z" fill="#bae6fd" stroke="#0f172a" stroke-width=".65" stroke-linejoin="round"/>
+  <path d="M6.4-1.1h1.2v1H6.4z" fill="#fde047" stroke="none"/>
+  <path d="M-.4-1.5v3.6" stroke="#b91c1c" stroke-width=".7" opacity=".85"/>
+  <circle cx="-4.4" cy="2.7" r="2.05" fill="#1e293b" stroke="#f8fafc" stroke-width=".55"/>
+  <circle cx="-4.4" cy="2.7" r=".78" fill="#cbd5e1"/>
+  <circle cx="4.2" cy="2.7" r="2.05" fill="#1e293b" stroke="#f8fafc" stroke-width=".55"/>
+  <circle cx="4.2" cy="2.7" r=".78" fill="#cbd5e1"/>`;
+
+// 쓰레기 — 수레 쓰레기통 + 묶은 봉투 + 캔 (폐기물 더미)
+const TRASH = `
+  <ellipse cx="-1" cy="5.6" rx="8.8" ry="1.9" fill="#57534e" opacity=".22"/>
+  <path d="M2.8 5C2.4 2.6 3.2.4 4.8-.4 6.2-1.1 7.6-.4 7.9 1.2 8.2 2.9 7.6 4.5 7.1 5Z"
+    fill="#d8dee5" stroke="#0f172a" stroke-width=".9" stroke-linejoin="round"/>
+  <path d="M4.9-.7 4.5-2.2 5.8-1.4 6.9-2.2 7-.7Z" fill="#b9c1ca" stroke="#0f172a" stroke-width=".75" stroke-linejoin="round"/>
+  <path d="M-6.2-1.4h8v6.1a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1z" fill="#4aa87a" stroke="#0f172a" stroke-width="1" stroke-linejoin="round"/>
+  <path d="M-7.2-2.4h9a.9.9 0 0 1 .9.9v.7h-10.8v-.7a.9.9 0 0 1 .9-.9z" fill="#2f7d5a" stroke="#0f172a" stroke-width="1" stroke-linejoin="round"/>
+  <path d="M-3.2-3.5h3" stroke="#0f172a" stroke-width="1.1" stroke-linecap="round"/>
+  <path d="M-4.6-1.2v6M-1.8-1.2v6" stroke="#2f7d5a" stroke-width=".7" opacity=".45"/>
+  <circle cx="-4.6" cy="5.9" r="1.15" fill="#1e293b"/>
+  <circle cx="0" cy="5.9" r="1.15" fill="#1e293b"/>
+  <rect x="-9.2" y="3" width="3.4" height="2.1" rx=".9" transform="rotate(-16 -7.5 4)" fill="#60a5fa" stroke="#0f172a" stroke-width=".8"/>`;
+
+/* ==========================================================================
+   자연재해 — 산불 · 폭염 · 가뭄 · 폭설 · 홍수 · 태풍 (대륙별 대표 지역에)
+   ========================================================================== */
+
+// 산불 — 불꽃 두 갈래 + 연기 + 그을린 땅
+const FIRE = `
+  <ellipse cx="0" cy="4.6" rx="7.2" ry="2.2" fill="#3f2412" opacity=".6"/>
+  <path d="M-6.6 4.4c1-1.8 2.4-2.6 4-2.8M2.6 4.4c1.2-1 2.6-1.2 4-1" fill="none" stroke="#78350f" stroke-width=".9" stroke-linecap="round"/>
+  <g fill="#cbd5e1" opacity=".85">
+    <ellipse cx="-1.6" cy="-10.6" rx="2.6" ry="1.7"/>
+    <ellipse cx="1.4" cy="-12.8" rx="2.9" ry="1.9"/>
+    <ellipse cx="5" cy="-14.6" rx="2.2" ry="1.5"/>
+  </g>
+  <path d="M0-8.8c3.8 4.2 6.4 7.2 5.2 11.2-.9 3-8.9 3.2-10-.2C-5.6-1.4-2.8-4.8 0-8.8Z"
+    fill="#ea580c" stroke="#7c2d12" stroke-width="1" stroke-linejoin="round"/>
+  <path d="M-2.6-1.6c1 2 1.8 3.2 1.2 6.6-1.6 0-3.2-1.2-3.2-3 0-1.4.8-2.6 2-3.6Z" fill="#f97316"/>
+  <path d="M1.2-4.2c1.8 2.8 2.2 4.8 1.2 7-1 1.9-3.2 1.6-3.6-.2-.4-1.6.8-3.8 2.4-6.8Z" fill="#fde047"/>`;
+
+// 폭염 — 붉은 해 + 아지랑이
+const HEAT = `
+  <g stroke="#f97316" stroke-width="1.3" stroke-linecap="round" opacity=".9">
+    <path d="M0-8.4v-1.6"/><path d="M-5.9-5.9-7-7"/><path d="M5.9-5.9 7-7"/>
+    <path d="M-7.6 0h-1.6"/><path d="M7.6 0h1.6"/>
+  </g>
+  <circle cx="0" cy="0" r="5.2" fill="#ef4444" stroke="#7f1d1d" stroke-width="1"/>
+  <circle cx="0" cy="0" r="2.7" fill="#fde047"/>
+  <g fill="none" stroke="#dc2626" stroke-width="1.4" stroke-linecap="round" opacity=".85">
+    <path d="M-6 6.2q1.5-1.8 3 0t3 0 3 0"/>
+    <path d="M-4 8.8q1.5-1.8 3 0t3 0"/>
+  </g>`;
+
+// 가뭄 — 갈라진 황토 대지 (마른 진흙 조각)
+const DROUGHT = `
+  <path d="M-8.8.8C-9-1.8-6.6-3.6-3.4-3.9.6-4.2 5.4-3.7 7.4-1.9 8.6-.7 7.7 1.9 4.9 3 1.1 4.4-4.9 4.2-7.3 2.7-8.1 2.2-8.7 1.7-8.8.8Z"
+    fill="#dcab68" stroke="#78350f" stroke-width=".95" stroke-linejoin="round"/>
+  <g fill="none" stroke="#8a4a19" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M-7.6-2.2-4.4-.9-6.2 2.1"/>
+    <path d="M-4.4-.9-.6.9"/>
+    <path d="M-.6.9 1.9-1.3 4.1.2"/>
+    <path d="M4.1.2 6.4-1.8"/>
+    <path d="M1.9-1.3 2.9-3.6"/>
+  </g>`;
+
+const flake = (cx, cy, r) => `<g transform="translate(${cx} ${cy})" stroke="#38bdf8" stroke-width=".85" stroke-linecap="round">
+      <path d="M0 ${-r}V${r}M${(-r * 0.87).toFixed(2)} ${(-r / 2).toFixed(2)}L${(r * 0.87).toFixed(2)} ${(r / 2).toFixed(2)}M${(-r * 0.87).toFixed(2)} ${(r / 2).toFixed(2)}L${(r * 0.87).toFixed(2)} ${(-r / 2).toFixed(2)}"/></g>`;
+
+// 폭설 — 눈구름 + 눈송이 + 눈더미
+const SNOW = `
+  <path d="M-7.2 1C-9.8 1-10.4-2.6-7.8-3.4-7.2-6.8-2.6-7.6 0-5.4 2-7.8 7.2-6.8 7.6-3.6 10.2-3 9.8 1 7.2 1Z"
+    fill="#e8eff7" stroke="#334155" stroke-width="1" stroke-linejoin="round"/>
+  <path d="M-9.4 8.2C-9 6.2-7.4 4.8-5.4 5.4-3.8 5.9-2.6 6.9-1 6.2.8 5.4 1.9 4.5 3.7 5.2 5.6 5.9 6.8 6.9 8.6 6.2 9.2 6 9.4 7.4 9.4 8.2Z"
+    fill="#ffffff" stroke="#94a3b8" stroke-width=".8" stroke-linejoin="round"/>
+  ${flake(-4.6, 0, 1.9)}${flake(.8, 1.4, 2.1)}${flake(5.2, .2, 1.9)}`;
+
+// 홍수 — 먹구름 + 빗줄기 + 불어난 물
+const FLOOD = `
+  <path d="M-7.2-1.4C-9.6-1.4-10.2-4.8-7.6-5.6-7-9-2.6-9.6 0-7.4 2-9.8 7-9 7.4-5.8 9.8-5.2 9.4-1.4 7-1.4Z"
+    fill="#475569" stroke="#0f172a" stroke-width=".95" stroke-linejoin="round"/>
+  <g stroke="#38bdf8" stroke-width="1.5" stroke-linecap="round">
+    <path d="M-4.2 0-5.4 3.6"/><path d="M-.2 0-1.4 3.6"/><path d="M3.8 0 2.6 3.6"/>
+  </g>
+  <path d="M-8.4 4.4C-5.6 3.4-2.8 5.4 0 4.4 2.8 3.4 5.6 5.4 8.4 4.4V9H-8.4Z" fill="#7dd3fc" opacity=".9"/>
+  <path d="M-7.4 5.6q1.9-1.6 3.8 0t3.8 0 3.8 0 3.8 0" fill="none" stroke="#0284c7" stroke-width="1.7" stroke-linecap="round"/>
+  <path d="M-6.2 8.2q1.7-1.4 3.4 0t3.4 0" fill="none" stroke="#f8fafc" stroke-width="1" stroke-linecap="round" opacity=".9"/>`;
+
+// 태풍 — 두 팔 나선 + 눈
+const TYPHOON = `
+  <path d="M0 0C-2.6-4.8-9.2-4.2-10 1.4-11 7.6-5 11.6.4 10.8 6.8 9.8 10.4 3 6.6-3.4 3.2-9.2-3.8-11-8.6-7.6"
+    fill="none" stroke="#f1f5f9" stroke-width="3.4" stroke-linecap="round"/>
+  <path d="M0 0C-2.6-4.8-9.2-4.2-10 1.4-11 7.6-5 11.6.4 10.8 6.8 9.8 10.4 3 6.6-3.4 3.2-9.2-3.8-11-8.6-7.6"
+    fill="none" stroke="#0ea5e9" stroke-width="1.25" stroke-linecap="round"/>
+  <circle cx="0" cy="0" r="1.9" fill="#0f172a"/>
+  <circle cx="0" cy="0" r="3.5" fill="none" stroke="#0f172a" stroke-width=".7" opacity=".4"/>`;
+
+/* ==========================================================================
+   바다 — 뜨거워진 바다의 집단 폐사 (배를 드러낸 물고기 · 하얗게 백화된 산호)
+   ========================================================================== */
+
+const FISH = `
+  <ellipse cx="0" cy="1.2" rx="5.6" ry="1.7" fill="#0a2333" opacity=".16"/>
+  <path d="M4.2 0 7.4-2.8V2.8Z" fill="#b6c3d2" stroke="#0f172a" stroke-width=".85" stroke-linejoin="round"/>
+  <path d="M-4.8 0C-3.4-3.2 3.4-3.2 4.8 0 3.4 3.2-3.4 3.2-4.8 0Z"
+    fill="#e8eef5" stroke="#0f172a" stroke-width=".9" stroke-linejoin="round"/>
+  <path d="M-3.6-2.4C-1.4-3.2 2-3 3.8-1.6" fill="none" stroke="#94a3b8" stroke-width=".8" stroke-linecap="round"/>
+  <path d="M-3.5-.8-1.7.9M-1.7-.8-3.5.9" stroke="#0f172a" stroke-width=".9" stroke-linecap="round"/>
+  <path d="M1.4-.2c.4-1 .2-1.9-.4-2.6" fill="none" stroke="#0f172a" stroke-width=".7" stroke-linecap="round"/>`;
+
+const CORAL = `
+  <ellipse cx="0" cy="4.6" rx="6" ry="1.6" fill="#cbd5e1" stroke="#94a3b8" stroke-width=".6"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M0 4.6V-3M0 1-3.4-3.4M0-.6 3.4-4M-3.4-3.4-4.4-6.8M3.4-4 4.6-7.4M-3.4-3.4-1.4-7M3.4-4 1.4-7.6" stroke="#8fa3b6" stroke-width="2.9"/>
+    <path d="M0 4.6V-3M0 1-3.4-3.4M0-.6 3.4-4M-3.4-3.4-4.4-6.8M3.4-4 4.6-7.4M-3.4-3.4-1.4-7M3.4-4 1.4-7.6" stroke="#fbfdff" stroke-width="1.7"/>
+  </g>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 4.4V1.4M6 2.4 7.8.2M6 2.4 4.4.4" stroke="#8fa3b6" stroke-width="2.4"/>
+    <path d="M6 4.4V1.4M6 2.4 7.8.2M6 2.4 4.4.4" stroke="#f2f7fb" stroke-width="1.4"/>
+  </g>`;
+
+/* ==========================================================================
+   배치 — 대륙·해역별 좌표(lon, lat)와 등장 시점(at: 온난화 지수)
+   원인은 발전소 → 가축 → 자동차 → 쓰레기 순서로, 재해는 지역별 대표 재해가 차례로 늘어납니다.
+   ========================================================================== */
+const SCENE = [
+  // --- 원인: 발전소 (가장 먼저) ---
+  { art: PLANT, lon: 108, lat: 34, at: 0.06, s: 0.8 },         // 중국 내륙
+  { art: PLANT, lon: 16, lat: 54, at: 0.12, s: 0.78 },         // 독일·폴란드
+  { art: PLANT, lon: -97, lat: 44, at: 0.26, s: 0.78 },        // 미국 중서부
+  { art: PLANT, lon: 25, lat: -25, at: 0.44, s: 0.76 },        // 남아프리카
+
+  // --- 원인: 가축 ---
+  { art: COW, lon: -50, lat: -15, at: 0.16, s: 0.8 },          // 브라질
+  { art: COW, lon: -63, lat: -36, at: 0.3, s: 0.78 },          // 아르헨티나
+  { art: COW, lon: 39, lat: 12, at: 0.45, s: 0.76 },           // 에티오피아
+
+  // --- 원인: 자동차 ---
+  { art: CAR, lon: 42, lat: 49, at: 0.36, s: 0.78 },           // 러시아·동유럽
+  { art: CAR, lon: 137, lat: 36, at: 0.48, s: 0.74, flip: -1 }, // 일본
+  { art: CAR, lon: -102, lat: 25, at: 0.6, s: 0.76 },          // 멕시코
+
+  // --- 원인: 쓰레기 (가장 나중) ---
+  { art: TRASH, lon: 3, lat: 2, at: 0.56, s: 0.8 },            // 서아프리카
+  { art: TRASH, lon: 110, lat: -7, at: 0.7, s: 0.78 },         // 자바
+
+  // --- 결과: 자연재해 (대륙별 대표 재해) ---
+  { art: HEAT, lon: 0, lat: 40, at: 0.07, s: 0.76 },           // 유럽(이베리아) 폭염
+  { art: DROUGHT, lon: 6, lat: 19, at: 0.15, s: 0.78 },        // 아프리카 사헬 가뭄
+  { art: HEAT, lon: 60, lat: 29, at: 0.28, s: 0.74 },          // 남아시아(파키스탄) 폭염
+  { art: FIRE, lon: 123, lat: -19, at: 0.34, s: 0.8 },         // 호주 산불
+  { art: FLOOD, lon: 88, lat: 26, at: 0.4, s: 0.76 },          // 남아시아 홍수
+  { art: SNOW, lon: -79, lat: 49, at: 0.46, s: 0.76 },         // 캐나다·미국 동북부 폭설
+  { art: FIRE, lon: -117, lat: 47, at: 0.5, s: 0.74 },         // 미국 서부 산불
+  { art: FLOOD, lon: 106, lat: 15, at: 0.52, s: 0.74 },        // 동남아 홍수
+  { art: FIRE, lon: -70, lat: -4, at: 0.58, s: 0.74 },         // 아마존 산불
+  { art: FIRE, lon: 70, lat: 62, at: 0.6, s: 0.72 },           // 시베리아 산불
+  { art: SNOW, lon: 30, lat: 68, at: 0.62, s: 0.72 },          // 북유럽 폭설
+  { art: FLOOD, lon: 22, lat: -4, at: 0.66, s: 0.72 },         // 콩고 홍수
+  { art: TYPHOON, lon: 135, lat: 12, at: 0.68, s: 0.74 },      // 서태평양 태풍
+  { art: TYPHOON, lon: -28, lat: 30, at: 0.74, s: 0.72 },      // 대서양 허리케인
+
+  // --- 결과: 바다 집단 폐사 (배를 드러낸 물고기 · 백화 산호) ---
+  { art: FISH, lon: -150, lat: 2, at: 0.34, s: 0.92 },         // 태평양
+  { art: FISH, lon: 78, lat: -12, at: 0.42, s: 0.92, rot: 12 }, // 인도양
+  { art: CORAL, lon: 146, lat: -14, at: 0.48, s: 0.92 },       // 그레이트 배리어 리프
+  { art: FISH, lon: -40, lat: 12, at: 0.56, s: 0.92, rot: -8 }, // 대서양
+  { art: CORAL, lon: 93, lat: -32, at: 0.62, s: 0.88 },        // 인도양 남부 산호
+  { art: CORAL, lon: -75, lat: 20, at: 0.72, s: 0.88 },        // 카리브해 산호
+];
+
+// 지구 그림 안에서 작은 화면에도 한눈에 읽히도록 전체 크기를 함께 키웁니다
+const ITEM_SCALE = 1.16;
+// 바다 요소는 파란 바탕 위라 흰 후광 없이 두고, 대륙 위 요소만 흰 후광으로 대륙과 분리합니다
+const SEA_ART = new Set([FISH, CORAL]);
+const itemArt = (it) => {
+  const x = px(it.lon).toFixed(1), y = py(it.lat).toFixed(1);
+  const s = it.s * ITEM_SCALE;
+  const rot = it.rot ? ` rotate(${it.rot})` : '';
+  const halo = SEA_ART.has(it.art) ? '' : ' filter="url(#earth-pop)"';
+  return `<g class="earth-item" transform="translate(${x} ${y}) scale(${(s * (it.flip || 1)).toFixed(3)} ${s.toFixed(3)})${rot}"${halo}>${it.art}</g>`;
 };
 
-const drop = (x, y, s = 1, color = '#7fd4ff') => `<g transform="translate(${x} ${y}) scale(${s})">
-      <path d="M0 0c-1.5 2-2 2.9-2 3.7a2 2 0 0 0 4 0c0-.8-.5-1.7-2-3.7z" fill="${color}" stroke="#2f7fae" stroke-width=".45"/>
-      <circle cx="-.6" cy="2.6" r=".55" fill="#ffffff" opacity=".85"/></g>`;
-const heart = (x, y, s = 1, color = '#ff5f7e') => `<g transform="translate(${x} ${y}) scale(${s})">
-      <path d="M0 2.4C-2.4.4-4.4-1-4.4-2.8-4.4-4.2-3.3-5-2.2-5c.9 0 1.7.5 2.2 1.3C.5-4.5 1.3-5 2.2-5c1.1 0 2.2.8 2.2 2.2 0 1.8-2 3.2-4.4 5.2z"
-        fill="${color}" stroke="#c9304c" stroke-width=".4"/></g>`;
-const spark = (x, y, s = 1, color = '#fff3a8') => `<path transform="translate(${x} ${y}) scale(${s})"
-      d="M0-3.2 1-1 3.2 0 1 1 0 3.2-1 1-3.2 0-1-1z" fill="${color}"/>`;
-
-function personFace(state, m) {
-  const eyes = (y = -20.1, dx = 1.75) => `<circle cx="${-dx}" cy="${y}" r=".72" fill="#232a33"/><circle cx="${dx}" cy="${y}" r=".72" fill="#232a33"/>`;
-  switch (state) {
-    case 'stable':
-      return `${eyes()}
-        <path d="M-2.5-17.3q2.5 2.7 5 0" fill="none" stroke="#8c2f3c" stroke-width=".95" stroke-linecap="round"/>
-        <circle cx="-3.2" cy="-18" r="1.05" fill="${m.cheek}" opacity=".55"/><circle cx="3.2" cy="-18" r="1.05" fill="${m.cheek}" opacity=".55"/>`;
-    case 'warming':
-      return `${eyes()}
-        <path d="M-2-17.5q2 .8 4 0" fill="none" stroke="#8c2f3c" stroke-width=".9" stroke-linecap="round"/>
-        <path d="M-2.6-21.6q1.2-1 2.4-.2" fill="none" stroke="#4a3226" stroke-width=".7" stroke-linecap="round"/>
-        ${drop(4.6, -22.4, .62)}`;
-    case 'crisis':
-      return `<path d="M-2.6-20.6l1.7 1.2-1.7 1.2" fill="none" stroke="#232a33" stroke-width=".85" stroke-linecap="round"/>
-        <path d="M2.6-20.6l-1.7 1.2 1.7 1.2" fill="none" stroke="#232a33" stroke-width=".85" stroke-linecap="round"/>
-        <ellipse cx="0" cy="-16.9" rx="1.5" ry="1.9" fill="#a83341"/>
-        <circle cx="-3.4" cy="-18.2" r="1.15" fill="${m.cheek}" opacity=".6"/><circle cx="3.4" cy="-18.2" r="1.15" fill="${m.cheek}" opacity=".6"/>
-        ${drop(-5.2, -22.6, .8)} ${drop(5.1, -21.4, .68)}`;
-    default: // boiling
-      return `<path d="M-3-21.4l2.4 2.4M-.6-21.4l-2.4 2.4" fill="none" stroke="#5c1f28" stroke-width=".85" stroke-linecap="round"/>
-        <path d="M.6-21.4l2.4 2.4M3-21.4l-2.4 2.4" fill="none" stroke="#5c1f28" stroke-width=".85" stroke-linecap="round"/>
-        <path d="M-2.2-17.2q1.1 1.4 2.2 0 1.1 1.4 2.2 0" fill="none" stroke="#8c2f3c" stroke-width=".9" stroke-linecap="round"/>
-        <path d="M-1.6-15.2q1.6.9 3.2 0" fill="#ff7d8f" stroke="#c2455a" stroke-width=".4"/>
-        <circle cx="0" cy="-19.4" r="4.9" fill="#e2503c" opacity=".18"/>
-        ${drop(-2.2, -16.2, .7, '#8fe0ff')} ${drop(2.2, -16.2, .7, '#8fe0ff')}`;
-  }
-}
-
-function personArms(state) {
-  const m = PERSON[state];
-  const st = `stroke="${m.shirt}" stroke-width="2.3" stroke-linecap="round"`;
-  if (state === 'stable') {
-    return `<path d="M-5-14.4-9-20.6" ${st}/><path d="M5-14.4 9-20.6" ${st}/>
-      <circle cx="-9.3" cy="-21.2" r="1.25" fill="${m.skin}" stroke="#4a2f1e" stroke-width=".5"/>
-      <circle cx="9.3" cy="-21.2" r="1.25" fill="${m.skin}" stroke="#4a2f1e" stroke-width=".5"/>`;
-  }
-  if (state === 'warming') {
-    return `<path d="M-5-14.2-7.6-10.2" ${st}/><path d="M5-14.2 7.4-16.8" ${st}/>
-      <circle cx="-7.9" cy="-9.7" r="1.5" fill="${m.skin}" stroke="#4a2f1e" stroke-width=".5"/>
-      <circle cx="7.7" cy="-17.4" r="1.5" fill="${m.skin}" stroke="#4a2f1e" stroke-width=".5"/>`;
-  }
-  if (state === 'crisis') {
-    return `<path d="M-5-14.2-7.2-8.6" ${st}/><path d="M5-14.2 7.2-8.6" ${st}/>
-      <circle cx="-7.5" cy="-8.1" r="1.5" fill="${m.skin}" stroke="#4a2f1e" stroke-width=".5"/>
-      <circle cx="7.5" cy="-8.1" r="1.5" fill="${m.skin}" stroke="#4a2f1e" stroke-width=".5"/>`;
-  }
-  return `<path d="M-5-14.2-6.4-7.4" ${st}/><path d="M5-14.2 6.4-7.4" ${st}/>
-    <circle cx="-6.6" cy="-6.9" r="1.5" fill="${m.skin}" stroke="#4a2f1e" stroke-width=".5"/>
-    <circle cx="6.6" cy="-6.9" r="1.5" fill="${m.skin}" stroke="#4a2f1e" stroke-width=".5"/>`;
-}
-
-function personArt(state) {
-  const m = PERSON[state];
-  const sway = state === 'boiling' ? ' rotate(-7)' : state === 'crisis' ? ' rotate(-3)' : '';
-  const decor = state === 'stable'
-    ? `${heart(9.6, -24.4, .95)} ${heart(-9.8, -21.6, .7, '#ff8fa6')} ${spark(-11.4, -25.2, .9)} ${spark(12.4, -19.6, .7)}`
-    : state === 'warming'
-      ? `${spark(9.4, -23.4, .6, '#ffe9a8')}`
-      : state === 'crisis'
-        ? `${drop(9.2, -26, .85)} ${drop(-9.4, -27.4, .7)}`
-        : `<path d="M-9-27.4q1.6-3.4 0-6.8M9-27.4q1.6-3.4 0-6.8" fill="none" stroke="#ff6a4d" stroke-width="1.2" stroke-linecap="round" opacity=".85"/>
-           <path d="M-12.4-24.6q1.4-2.8 0-5.6M12.4-24.6q1.4-2.8 0-5.6" fill="none" stroke="#ff8f5e" stroke-width="1" stroke-linecap="round" opacity=".75"/>`;
-  return `<g class="earth-person" filter="url(#earth-pop)" transform="translate(${KOREA.x.toFixed(1)} ${(KOREA.y + 1).toFixed(1)})">
-    <ellipse cx="0" cy="1.6" rx="7.4" ry="2.3" fill="#0a2333" opacity=".2"/>
-    <g transform="scale(.9)${sway}">
-      ${personArms(state)}
-      <path d="M-3.4-6.6h2.8v6.4h-2.8z" fill="${m.pants}"/>
-      <path d="M.6-6.6h2.8v6.4h-2.8z" fill="${m.pants}"/>
-      <path d="M-5.6-15.6q0-2.6 2.6-2.6h6q2.6 0 2.6 2.6v7.2q0 2.6-2.6 2.6h-6q-2.6 0-2.6-2.6z"
-        fill="${m.shirt}" stroke="#0b2033" stroke-width="1.1"/>
-      <circle cx="0" cy="-19.4" r="4.9" fill="${m.skin}" stroke="#4a2f1e" stroke-width="1.1"/>
-      <path d="M-4.9-20.5q1.1-4.5 4.9-4.5q3.8 0 4.9 4.5q-2.3-1.8-4.9-1.8q-2.6 0-4.9 1.8z" fill="#3b2a20" stroke="#2a1b13" stroke-width=".4"/>
-      ${personFace(state, m)}
-    </g>
-  </g>`;
-}
-
-// ---------- 북극곰 ----------
-const BEAR_EYES = {
-  stable: `<path d="M-2.8-13.6q1-1.2 2 0M.8-13.6q1-1.2 2 0" fill="none" stroke="#2d3138" stroke-width=".9" stroke-linecap="round"/>`,
-  warming: `<circle cx="-1.8" cy="-13.8" r=".75" fill="#2d3138"/><circle cx="1.8" cy="-13.8" r=".75" fill="#2d3138"/>
-    <path d="M-2.6-15.4q.8-.7 1.6-.1M1-15.5q.8-.6 1.6.1" fill="none" stroke="#5a5248" stroke-width=".55" stroke-linecap="round"/>`,
-  crisis: `<circle cx="-1.8" cy="-13.4" r=".82" fill="#2d3138"/><circle cx="1.8" cy="-13.4" r=".82" fill="#2d3138"/>
-    <path d="M-3.4-15.6l2.3.7M3.4-15.6l-2.3.7" fill="none" stroke="#5a5248" stroke-width=".7" stroke-linecap="round"/>`,
-  boiling: `<path d="M-3.1-14.6l2.2 2.2M-.9-14.6l-2.2 2.2M.9-14.6l2.2 2.2M3.1-14.6l-2.2 2.2" fill="none" stroke="#3a2f2a" stroke-width=".8" stroke-linecap="round"/>`,
-};
-
-function bearArt(state, x, y, t) {
-  const fur = mixColor('#fcfeff', '#ffe4d4', t * 0.85);          // 뜨거워지면 살짝 붉은 기운
-  const line = mixColor('#a9bdcd', '#6f5647', Math.min(1, t * 1.05)); // 배경이 붉어져도 곰이 보이게 선을 진하게
-  const ear = state === 'crisis' || state === 'boiling' ? ' rotate(24)' : '';
-  const earR = state === 'crisis' || state === 'boiling' ? ' rotate(-24)' : '';
-  const face = state === 'stable'
-    ? `<path d="M-2-11.3q2 1.6 4 0" fill="none" stroke="#4a4038" stroke-width=".75" stroke-linecap="round"/>`
-    : state === 'warming'
-      ? `<path d="M-1.6-11.2h3.2" stroke="#4a4038" stroke-width=".7" stroke-linecap="round"/>`
-      : state === 'crisis'
-        ? `<ellipse cx="0" cy="-10.6" rx="1.1" ry="1.4" fill="#c25a63"/><path d="M-1.1-9.4q1.1.9 2.2 0" fill="#ff8f9c" stroke="#b8515b" stroke-width=".3"/>`
-        : `<path d="M-1.9-11q1.9 1.6 3.8 0" fill="none" stroke="#4a4038" stroke-width=".8" stroke-linecap="round"/>
-           <path d="M-1.4-9.6q1.4 1.2 2.8 0" fill="#ff8f9c" stroke="#b8515b" stroke-width=".3"/>
-           ${drop(-2.6, -8.2, .62, '#8fe0ff')} ${drop(2.6, -8.2, .62, '#8fe0ff')}`;
-  const decor = state === 'stable'
-    ? `${heart(9.2, -20.4, 1.05)} ${spark(-9.6, -21, .95)} ${spark(11.6, -14.6, .6)}`
-    : state === 'warming'
-      ? `${drop(7.4, -20.4, .7)}`
-      : state === 'crisis'
-        ? `${drop(-7.6, -21.4, .9)} ${drop(7.6, -19.6, .75)}`
-        : `<path d="M-8.4-24q1.6-3.4 0-6.8M8.4-24q1.6-3.4 0-6.8" fill="none" stroke="#ff6a4d" stroke-width="1.1" stroke-linecap="round" opacity=".8"/>`;
-  const body = state === 'boiling'
-    ? `<ellipse cx="0" cy="-6.4" rx="8.4" ry="5" fill="${fur}" stroke="${line}" stroke-width="1.2"/>`
-    : `<ellipse cx="0" cy="-6.6" rx="7.8" ry="6.2" fill="${fur}" stroke="${line}" stroke-width="1.2"/>`;
-  return `<g class="earth-bear" filter="url(#earth-pop)" transform="translate(${x.toFixed(1)} ${y.toFixed(1)})">
-    <ellipse cx="0" cy="1.2" rx="8.6" ry="2.4" fill="#0a2333" opacity="${(0.18 + 0.12 * t).toFixed(2)}"/>
-    <g transform="scale(.92)">
-      ${body}
-      <ellipse cx="0" cy="-4.6" rx="4.2" ry="3.6" fill="${mixColor('#e8f1f8', '#f7d3bf', t * 0.8)}"/>
-      <g transform="translate(-4.6 -17)${earR}"><circle cx="0" cy="0" r="2.2" fill="${fur}" stroke="${line}" stroke-width="1"/><circle cx="0" cy="0" r="1.1" fill="#f3c9cc"/></g>
-      <g transform="translate(4.6 -17)${ear}"><circle cx="0" cy="0" r="2.2" fill="${fur}" stroke="${line}" stroke-width="1"/><circle cx="0" cy="0" r="1.1" fill="#f3c9cc"/></g>
-      <circle cx="0" cy="-13.4" r="4.7" fill="${fur}" stroke="${line}" stroke-width="1.2"/>
-      <ellipse cx="0" cy="-11.6" rx="2.7" ry="2" fill="${mixColor('#f2f7fb', '#ffe3d3', t * 0.7)}" stroke="${line}" stroke-width=".45"/>
-      <ellipse cx="0" cy="-12.4" rx="1.15" ry=".8" fill="#33383f"/>
-      ${BEAR_EYES[state]}
-      <ellipse cx="-5.2" cy="-2" rx="2.9" ry="2" fill="${fur}" stroke="${line}" stroke-width=".9"/>
-      <ellipse cx="5.2" cy="-2" rx="2.9" ry="2" fill="${fur}" stroke="${line}" stroke-width=".9"/>
-      ${face}
-    </g>
-    ${decor}
-  </g>`;
-}
+// 온난화 지수에 따라 지금 보여야 하는 원인·재해만 그립니다 (등장 순서 = at 오름차순)
+const impactArt = (t) => `<g class="earth-impact">${SCENE.filter((it) => it.at <= t + 1e-9).map(itemArt).join('')}</g>`;
 
 // ---------- 빙하 ----------
 const waveAt = (x, amp) => (3.1 * Math.sin(x * 0.062 + 0.4) + 1.5 * Math.sin(x * 0.155 + 2.1) + 0.8 * Math.sin(x * 0.31 + 4.2)) * amp;
@@ -292,7 +386,7 @@ function iceShape(edgeY, dir, amp) {
   return `M-28 ${top}H268V${pts[0][1].toFixed(1)}L` + pts.map(([x, y]) => `${x} ${y.toFixed(1)}`).join(' ') + 'Z';
 }
 
-function iceArt(c, t, state) {
+function iceArt(c, t) {
   const { north, south, amp } = iceParams(t);
   const lineC = mixColor('#9ed3ec', '#e0a58c', t);
   const cracks = (dir) => {
@@ -339,13 +433,6 @@ function iceArt(c, t, state) {
       <g opacity=".8">
         ${cracks(1)}${cracks(-1)}
       </g>
-      <!-- 북극곰이 앉은 작은 얼음 조각 (위기·폭염) -->
-      ${state === 'crisis' || state === 'boiling'
-        ? `<g transform="translate(120 ${(north + 8).toFixed(1)})">
-             <ellipse cx="0" cy="0" rx="${state === 'boiling' ? 8 : 11}" ry="${state === 'boiling' ? 2.4 : 3.2}" fill="${c.snow}" opacity=".97"/>
-             <ellipse cx="0" cy=".6" rx="${state === 'boiling' ? 8 : 11}" ry="${state === 'boiling' ? 2.4 : 3.2}" fill="${mixColor('#bfe9ff', '#ffd9c8', t)}" opacity=".35"/>
-           </g>`
-        : ''}
     </g>`;
 }
 
@@ -357,7 +444,7 @@ function landLatGradient(c, t) {
     </linearGradient>`;
 }
 
-function landArt(c, t, state) {
+function landArt(c, t) {
   const peak = 0.45 * (1 - 0.5 * t);   // 기온이 오르면 높은 산의 만년설이 줄어듭니다
   const forestOp = 0.5 + 0.12 * t;
   return `
@@ -372,9 +459,7 @@ function landArt(c, t, state) {
         <g stroke="${c.landLine}" stroke-width=".7" stroke-linejoin="round" stroke-opacity=".75">
           ${MOUNTAINS.map(([x, y, w, h]) => `<path d="M${(x - w).toFixed(1)} ${y.toFixed(1)}l${w} ${(-h).toFixed(1)}l${w} ${h}z" fill="${mixColor('#7a8f6a', '#9c4a33', Math.pow(t, 1.2))}"/>`).join('\n          ')}
           ${MOUNTAINS.map(([x, y, w, h]) => `<path d="M${(x - w * peak).toFixed(1)} ${(y - h * (1 - peak)).toFixed(1)}l${(w * peak).toFixed(1)} ${(-h * peak).toFixed(1)}l${(w * peak).toFixed(1)} ${(h * peak).toFixed(1)}z" fill="${c.snow}" stroke="none"/>`).join('\n          ')}
-        </g>
-
-        ${personArt(state)}`;
+        </g>`;
 }
 
 // 구름 한 벌 — 대륙과 다른 속도로 흐릅니다
@@ -392,10 +477,10 @@ function cloudArt(c, op) {
 const band = (inner) => `<g>${inner}</g>\n        <g transform="translate(${ART_W} 0)">${inner}</g>`;
 
 const MOOD_TEXT = {
-  stable: '사람도 북극곰도 활짝 웃어요',
-  warming: '더워져서 땀이 나요',
-  crisis: '빙하가 녹아 북극곰이 지쳐요',
-  boiling: '지구가 한계에 닿았어요',
+  stable: '깨끗한 대륙과 바다가 숨 쉬어요',
+  warming: '발전소·가축이 늘며 지구 기온이 올라요',
+  crisis: '산불·폭설·폭우와 바다 폐사가 번져요',
+  boiling: '전 세계 재해와 해양 위기가 한계에 닿았어요',
 };
 export function earthMood(p) {
   const state = earthState(p);
@@ -412,12 +497,9 @@ export function earthSvg(p) {
   const ringOp = (0.14 + t * 0.5).toFixed(2);
   const heatOp = (t * 0.5).toFixed(2);
   const heatW = (4 + t * 12).toFixed(1);
-  const cloudOp = (0.8 - t * 0.32).toFixed(2);
+  const cloudOp = (0.8 - t * 0.44).toFixed(2);
   const sparkOp = (0.85 - t * 0.55).toFixed(2);
   const sunOp = (0.26 - t * 0.16).toFixed(2);
-  const { north, amp } = iceParams(t);
-  const bearOnFloe = state === 'crisis' || state === 'boiling';
-  const bearY = bearOnFloe ? north + 7.4 : north + waveAt(120, amp) - 1.4;
 
   return `<svg class="earth-svg" viewBox="0 0 240 240" role="img" aria-label="지구 온난화 지수 ${pct}% · 지구 온도 ${tempText(t)} · ${MOOD_TEXT[state]}">
     <defs>
@@ -437,7 +519,7 @@ export function earthSvg(p) {
         <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
       </linearGradient>
       <filter id="earth-pop" x="-40%" y="-40%" width="180%" height="180%">
-        <feDropShadow dx="0" dy="0" stdDeviation="0.85" flood-color="#ffffff" flood-opacity="0.6"/>
+        <feDropShadow dx="0" dy="0" stdDeviation="0.8" flood-color="#ffffff" flood-opacity="0.62"/>
       </filter>
       <filter id="earth-heat" x="-40%" y="-40%" width="180%" height="180%">
         <feGaussianBlur stdDeviation="4"/>
@@ -451,9 +533,9 @@ export function earthSvg(p) {
     <circle cx="120" cy="120" r="92" fill="url(#earth-ocean)" stroke="#000" stroke-width="3"/>
 
     <g clip-path="url(#earth-clip)">
-      <!-- 대륙 (자전) — 한반도의 사람도 함께 돕니다 -->
+      <!-- 대륙 · 원인 · 재해 · 바다 폐사 (자전) -->
       <g class="earth-spin earth-spin-land">
-        ${band(landArt(c, t, state))}
+        ${band(landArt(c, t) + impactArt(t))}
       </g>
 
       <!-- 구름 (자전 · 대륙과 다른 속도) -->
@@ -461,10 +543,7 @@ export function earthSvg(p) {
         ${band(cloudArt(c, cloudOp))}
       </g>
 
-      ${iceArt(c, t, state)}
-
-      <!-- 북극곰 (빙하 위 · 고정) -->
-      ${bearArt(state, 120, bearY, t)}
+      ${iceArt(c, t)}
 
       <!-- 고정 조명 — 자전해도 빛은 늘 같은 자리에서 들어옵니다 -->
       <g class="earth-overlay">

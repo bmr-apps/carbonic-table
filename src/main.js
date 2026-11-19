@@ -7,7 +7,7 @@ import { loginWithGoogle, logout, onUserChange } from './auth.js';
 import { local } from './store.js';
 import { FN_URL } from './supabase.js';
 import { api, ApiError } from './api.js';
-import { earthLook, earthSvg, earthState, earthMood, tempText, syncEarthSpin } from './earth.js';
+import { EARTH_STATES, earthLook, earthSvg, earthState, earthMood, tempText, syncEarthSpin } from './earth.js';
 
 // ---------- 작은 도우미 ----------
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -374,11 +374,9 @@ function homeView() {
       <aside class="earth-side">
         <h2 id="earth-title">${icon('globe', 'ico lg')} 지구는 지금</h2>
         <p>한 시간마다 탄소 <b>${nf(season?.earth?.carbon_per_hour ?? 1)}개</b>씩 쌓여 지구 기온이 올라가요. 우리가 모은 <b>공기 1개</b>가 탄소 1개를 상쇄해 지구 온도를 낮춰 줘요.</p>
+        <p>탄소가 쌓일수록 대륙에는 <b>발전소 → 가축 → 자동차 → 쓰레기</b>가, 하늘과 바다에는 <b>산불·폭염·가뭄·폭설·홍수·태풍</b>과 <b>바다 생물 집단 폐사</b>가 늘어나요.</p>
         <ul class="earth-steps">
-          <li class="s-stable"><span></span>안정 (시원함) — 지구가 시원하게 숨 쉬어요</li>
-          <li class="s-warming"><span></span>온난화 주의 — 탄소가 쌓이며 기온이 올라요</li>
-          <li class="s-crisis"><span></span>기후 위기 경고 — 빙하가 녹고 지구가 달아올라요</li>
-          <li class="s-boiling"><span></span>임계점 돌파 (폭염) — 지구가 한계에 닿았어요</li>
+          ${Object.entries(EARTH_STATES).map(([k, v]) => `<li class="s-${k}"><span></span>${esc(v.label)} — ${esc(v.note)}</li>`).join('')}
         </ul>
         <p class="hint">온난화 지수와 지구 온도는 이 앱의 이야기를 위한 눈금이에요.</p>
       </aside>
