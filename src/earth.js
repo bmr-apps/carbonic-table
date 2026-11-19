@@ -351,7 +351,7 @@ function iceArt(c, t, state) {
 
 // ---------- 대륙 ----------
 function landLatGradient(c, t) {
-  const hot = Math.pow(t, 1.45) * 0.86;
+  const hot = Math.pow(t, 1.7) * 0.78;
   return `<linearGradient id="earth-land" gradientUnits="userSpaceOnUse" x1="0" y1="18" x2="0" y2="224">
       ${LAND_BANDS.map(([y, col]) => `<stop offset="${((y - 18) / 206 * 100).toFixed(1)}%" stop-color="${mixColor(col, LAND_HOT, hot * 0.92)}"/>`).join('\n      ')}
     </linearGradient>`;
