@@ -49,9 +49,6 @@ type Kind = (typeof KINDS)[number];
 const REACTIONS = ['🌱', '👏', '💚', '🔥'] as const;
 type Reaction = (typeof REACTIONS)[number];
 
-// TEMP-QA: 배포 검증용 — 이 메일 계정만 관리자로 본다. 검증이 끝나면 이 두 줄과 아래 호출을 지운다.
-const QA_ADMIN_EMAIL = 'qa-carbonic@example.com';
-const isQaAdmin = (u: HubUser | null) => u?.email === QA_ADMIN_EMAIL;
 const secret = (name: string) => Deno.env.get(PREFIX + name) ?? '';
 const DB_URL = secret('DB_URL');
 const SB_URL = (Deno.env.get('SUPABASE_URL') ?? '').replace(/\/+$/, '');
@@ -207,8 +204,11 @@ function earthOf(carbonPerHour: unknown, capacity: unknown, startedAt: unknown, 
   const hours = Math.floor(elapsed / 3600);
   const emitted = Math.round(hours * cph * 10) / 10;
   const net = Math.round((emitted - air) * 10) / 10;
-  const pollution = Math.max(0, Math.min(1, net / cap));
-  const state = pollution < 0.02 ? 'clean' : pollution < 0.34 ? 'watch' : pollution < 0.67 ? 'smog' : 'critical';
+  // 지구가 붉어지는 정도 — 탄소가 carbon_capacity 보다 많아지면 '발생 탄소 대비 아직 막지 못한 몫'으로 잰다
+  // (그래야 시즌이 길어져도 늘 새빨간 채로 굳지 않고, 공기가 늘수록 눈에 띄게 맑아진다)
+  const denom = Math.max(cap, emitted > 0 ? emitted : cap);
+  const pollution = Math.max(0, Math.min(1, net / denom));
+  const state = pollution < 0.05 ? 'clean' : pollution < 0.35 ? 'watch' : pollution < 0.7 ? 'smog' : 'critical';
   return {
     carbon_per_hour: cph,
     carbon_capacity: cap,
@@ -337,7 +337,7 @@ async function buildState(sql: Sql, req: Request) {
     await sql`update carbonic_table.members set is_admin = true, updated_at = now() where user_id = ${member.user_id}`;
     member = { ...member, is_admin: true };
   }
-  const isAdmin = Boolean(member?.is_admin) || hubAdmin || isQaAdmin(user);  // TEMP-QA
+  const isAdmin = Boolean(member?.is_admin) || hubAdmin;
 
   const seasons = await listSeasons(sql);
   const wanted = Number(url.searchParams.get('season') ?? '');
@@ -619,7 +619,7 @@ Deno.serve(async (req) => {
     }
 
     // 사진 내려 주기 (공개 — <img> 가 바로 부를 수 있게)
-    if (parts[0] === 'images' && parts[1] && !parts[2] && req.method === 'GET') {
+    if (parts[0] === 'images' && parts[1] && !parts[2] && (req.method === 'GET' || req.method === 'HEAD')) {
       const id = idOf(parts[1]);
       const [img] = await db`select mime, data from carbonic_table.images where id = ${id}` as unknown as Row[];
       if (!img) return json(req, 404, { error: '사진을 찾지 못했어요.' });
@@ -631,7 +631,7 @@ Deno.serve(async (req) => {
         const view = new Uint8Array(buf);
         for (let i = 0; i < bin.length; i += 1) view[i] = bin.charCodeAt(i);
       } catch { return json(req, 500, { error: '사진을 읽지 못했어요.' }); }
-      return new Response(buf, {
+      return new Response(req.method === 'HEAD' ? null : buf, {
         status: 200,
         headers: {
           ...cors(req),
@@ -649,7 +649,7 @@ Deno.serve(async (req) => {
 
     const role = user ? await hubRole(req, user) : null;
     const member = user ? await memberFor(db, user.id) : null;
-    const isAdmin = Boolean(member?.is_admin) || role === 'admin' || role === 'staff' || isQaAdmin(user);  // TEMP-QA
+    const isAdmin = Boolean(member?.is_admin) || role === 'admin' || role === 'staff';
     const requireAdmin = () => {
       if (!isAdmin) throw new HttpError(403, '관리자만 할 수 있어요. (허브 관리자·교직원, 또는 이 앱의 관리자)');
     };

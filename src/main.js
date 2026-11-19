@@ -89,7 +89,7 @@ function earthLook(p) {
     land: mixColor('#3f9e63', '#e0563c', t),
     haze: mixColor('#eaf4ff', '#8a1f12', t * 0.92),
     ring: mixColor('#38bdf8', '#ef4444', t),
-    label: t < 0.02 ? '맑음' : t < 0.34 ? '조금 흐림' : t < 0.67 ? '뿜옥게 덮임' : '붉게 달아오름',
+    label: t < 0.05 ? '맑음' : t < 0.35 ? '조금 흐림' : t < 0.7 ? '뿌옇게 덮임' : '붉게 달아오름',
   };
 }
 function earthSvg(p) {
@@ -133,8 +133,9 @@ function liveEarth() {
   const hours = Math.floor(elapsed / 3600);
   const emitted = Math.round(hours * cph * 10) / 10;
   const net = Math.round((emitted - air) * 10) / 10;
-  const pollution = Math.max(0, Math.min(1, net / cap));
-  const stateName = pollution < 0.02 ? 'clean' : pollution < 0.34 ? 'watch' : pollution < 0.67 ? 'smog' : 'critical';
+  const denom = Math.max(cap, emitted > 0 ? emitted : cap);
+  const pollution = Math.max(0, Math.min(1, net / denom));
+  const stateName = pollution < 0.05 ? 'clean' : pollution < 0.35 ? 'watch' : pollution < 0.7 ? 'smog' : 'critical';
   return {
     carbon_per_hour: cph, carbon_capacity: cap, earth_started_at: base.earth_started_at,
     elapsed_seconds: elapsed, next_carbon_in: 3600 - (elapsed % 3600),
@@ -924,7 +925,7 @@ function mineView() {
     <div class="mine-tiles">
       <div class="mine-tile"><small>이번 시즌 실천</small><b>${nf(all.count)}<span class="u">회</span></b></div>
       <div class="mine-tile"><small>모은 공기</small><b>${nf(all.air)}<span class="u">공기</span></b></div>
-      <div class="mine-tile"><small>지구를 맑게 한 몫</small><b>${nf(all.air)}<span class="u">탄소</span></b></div>
+      <div class="mine-tile"><small>지구를 맑게 한 몫 (탄소)</small><b>${nf(all.air)}<span class="u">개</span></b></div>
       <div class="mine-tile"><small>이번 시즌 순위</small><b>${rank ? nf(rank) : '—'}<span class="u">위</span></b></div>
     </div>
 
