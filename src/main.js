@@ -1451,8 +1451,12 @@ document.addEventListener('click', async (e) => {
   if (action === 'go') { switchView(el.dataset.view || 'home'); return; }
   if (action === 'login') { loginWithGoogle(); return; }
   if (action === 'logout') {
-    await logout();
-    toast('로그아웃했어요. 이 앱에서만 나왔어요.', 'ok');
+    try {
+      await logout();
+      toast('로그아웃했어요. 이 앱에서만 나왔어요.', 'ok');
+    } catch (err) {
+      toast(err?.message || '로그아웃하지 못했어요.', 'err');
+    }
     return;
   }
   if (action === 'retry' || action === 'refresh') { load({ quiet: Boolean(state.data) }); return; }
