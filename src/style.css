@@ -789,7 +789,7 @@ label.check { display: inline-flex; align-items: center; gap: 8px; font-size: 13
   padding: 18px; align-items: center;
 }
 .earth-card.empty-earth { display: block; }
-.earth-figure { position: relative; display: grid; place-items: center; background: var(--cream-2); border: var(--bw) solid var(--line); padding: 8px 8px 24px; }
+.earth-figure { position: relative; display: grid; place-items: center; background: var(--cream-2); border: var(--bw) solid var(--line); padding: 8px 8px 10px; }
 .earth-svg { width: 100%; max-width: 100%; height: auto; display: block; }
 .earth-card.crisis .earth-svg { animation: earth-pulse 5s ease-in-out infinite; }
 .earth-card.boiling .earth-svg { animation: earth-pulse 2.6s ease-in-out infinite; }
@@ -806,11 +806,12 @@ label.check { display: inline-flex; align-items: center; gap: 8px; font-size: 13
 /* 자전하는 대륙·구름은 CSS transform 을 쓰는 순간 별도의 쌓임 맥락이 되어, DOM 뒤에 있는 빙하·조명보다
    위에 그려집니다. 그래서 고정 층(빙하·빛·열기)에도 같은 쌓임 맥락을 주어 DOM 순서대로(빙하 → 빛) 올라오게 합니다. */
 .earth-ice, .earth-overlay { transform: translate(0, 0); }
+.earth-figure-foot { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; justify-content: center; margin-top: 4px; }
 .earth-badge {
-  position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
   border: 1.5px solid #000; background: var(--surface); color: #000;
   padding: 1px 9px; font-size: 12px; font-weight: 900; white-space: nowrap;
 }
+.earth-mood { font-size: 11.5px; font-weight: 750; color: var(--muted); }
 .earth-badge.stable { background: #d5e9f8; }
 .earth-badge.warming { background: #f5eccd; }
 .earth-badge.crisis { background: #f4ddcf; }

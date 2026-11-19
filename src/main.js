@@ -7,7 +7,7 @@ import { loginWithGoogle, logout, onUserChange } from './auth.js';
 import { local } from './store.js';
 import { FN_URL } from './supabase.js';
 import { api, ApiError } from './api.js';
-import { earthLook, earthSvg, earthState, tempText, syncEarthSpin } from './earth.js';
+import { earthLook, earthSvg, earthState, earthMood, tempText, syncEarthSpin } from './earth.js';
 
 // ---------- 작은 도우미 ----------
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -445,7 +445,10 @@ function earthCardHtml() {
   return `<article class="earth-card ${e.state}" id="earth-card">
     <div class="earth-figure">
       ${earthSvg(p)}
-      <span class="earth-badge ${e.state}">${esc(look.label)}</span>
+      <div class="earth-figure-foot">
+        <span class="earth-badge ${e.state}">${esc(look.label)}</span>
+        <span class="earth-mood">${esc(earthMood(p))}</span>
+      </div>
     </div>
     <div class="earth-data">
       <div class="earth-head">
