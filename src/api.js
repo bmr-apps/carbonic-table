@@ -51,7 +51,8 @@ export const api = {
   saveProfile: (name, kind) => request('/me', { method: 'POST', body: { name, kind } }),
   deleteProfile: () => request('/me', { method: 'DELETE' }),
   addActivity: (mission_id, done_on) => request('/activities', { method: 'POST', body: { mission_id, done_on } }),
-  // 여러 미션·같은 미션 여러 번을 한 번에: { items: [{ mission_id, count }], done_on, image_url? }
+  // 여러 미션·같은 미션 여러 번을 한 번에: { items: [{ mission_id, count, image_url? }], done_on, image_url? }
+  //  · 항목 사진은 그 항목의 첫 행에만, 대표(image_url) 사진은 전체 첫 행 한 곳에만 저장됩니다.
   addActivities: (payload) => request('/activities', { method: 'POST', body: payload }),
   // 사진 올리기 — data:image/webp;base64,… 를 보내면 { path: '/images/번호' } 를 돌려줍니다
   uploadImage: (data) => request('/images', { method: 'POST', body: { data } }),
