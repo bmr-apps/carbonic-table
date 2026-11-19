@@ -543,6 +543,7 @@ label.check { display: inline-flex; align-items: center; gap: 8px; font-size: 13
 .op-bar .hint { max-width: 70ch; }
 .op-form { display: grid; gap: 12px; margin-bottom: 18px; border-top: 8px solid var(--leaf); }
 .auctions { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
+.auctions > .auction { max-width: 660px; }
 .auction { border: var(--bw) solid var(--line); background: var(--surface); box-shadow: var(--shadow); display: flex; flex-direction: column; min-width: 0; }
 .auction > header { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: var(--bw) solid var(--line); background: var(--surface-2); }
 .auction > header h3 { font-size: 16.5px; min-width: 0; overflow-wrap: anywhere; }
