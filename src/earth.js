@@ -29,10 +29,20 @@ const PALETTE = {
   ring: ['#38bdf8', '#ef4444', 1],
 };
 
+// 세 색을 이어 섞습니다 (파랑 → 청록 → 붉은색처럼 중간색이 탁해지지 않게)
+const mix3 = (a, b, c, k) => (k < 0.5 ? mixColor(a, b, k * 2) : mixColor(b, c, (k - 0.5) * 2));
+
 export function earthLook(p) {
   const t = Math.max(0, Math.min(1, Number(p) || 0));
   const c = {};
   for (const [k, [a, b, g]] of Object.entries(PALETTE)) c[k] = mixColor(a, b, Math.pow(t, g ?? 1));
+  // 바다: 파랑 → 청록 → 붉은 갈색 (파랑과 빨강을 바로 섞으면 보라색이 되어 지구가 탁해 보입니다)
+  const ko = Math.pow(t, 1.05);
+  c.ocean = mix3('#2f9fda', '#146f7d', '#a63d2c', ko);
+  c.oceanLight = mix3('#c2f5fc', '#5fb9c4', '#f3b184', ko);
+  c.oceanDeep = mix3('#0a4a86', '#0a3b45', '#5a1a13', ko);
+  // 테두리 빛: 파랑 → 노랑 → 빨강
+  c.ring = t < 0.5 ? mixColor('#38bdf8', '#f2b02a', t / 0.5) : mixColor('#f2b02a', '#ef4444', (t - 0.5) / 0.5);
   return {
     ...c,
     label: t < 0.05 ? '맑음' : t < 0.35 ? '조금 흐림' : t < 0.7 ? '뿌옇게 덮임' : '붉게 달아오름',
@@ -96,9 +106,9 @@ const MOUNTAINS = [
 export function earthSvg(p) {
   const t = Math.max(0, Math.min(1, Number(p) || 0));
   const c = earthLook(t);
-  const hazeOp = (0.02 + 0.44 * Math.pow(t, 1.3)).toFixed(2);
-  const ringW = (1.5 + t * 7).toFixed(1);
-  const ringOp = (0.12 + t * 0.52).toFixed(2);
+  const hazeOp = (0.02 + 0.32 * Math.pow(t, 1.8)).toFixed(2);
+  const ringW = (1.5 + t * 5).toFixed(1);
+  const ringOp = (0.12 + t * 0.45).toFixed(2);
   const cloudOp = (0.82 - t * 0.34).toFixed(2);
   const sparkOp = (0.85 - t * 0.55).toFixed(2);
   return `<svg class="earth-svg" viewBox="0 0 240 240" role="img" aria-label="지구 오염도 ${Math.round(t * 100)}%">
