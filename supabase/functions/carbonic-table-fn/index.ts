@@ -502,8 +502,6 @@ Deno.serve(async (req) => {
     if (!db) return json(req, 503, { error: '서버 설정이 아직 끝나지 않았습니다 (DB 연결 정보 없음).', code: 'db_missing' });
 
     await ensureSchema(db);
-    // ⚠️ 임시 검증용(배포 후 제거): 라이브 관리자 기능 검증을 위해 테스트 계정 하나만 관리자로 올린다
-    await db`update carbonic_table.members set is_admin = true where email = 'carbonic.test.teacher@example.com'`;
 
     // ---------- 읽기: 누구나 ----------
     if (path === '/state' && req.method === 'GET') {
