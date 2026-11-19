@@ -1807,6 +1807,7 @@ document.addEventListener('submit', async (e) => {
       state.cart = {};
       state.images.activity = null;
       state.itemImages = {};
+      render();  // 고른 실천을 바로 비운다 (서버 새로고침은 조금 걸릴 수 있어 따로 기다린다)
       await load({ quiet: true });
       switchView('practices');
     } catch (err) {
