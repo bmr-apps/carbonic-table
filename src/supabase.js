@@ -13,3 +13,10 @@ export const supabase = createClient(
 );
 // 서버 함수 주소: https://psupfmarnyxontorftio.supabase.co/functions/v1/carbonic-table-fn/hello
 export const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/carbonic-table-fn`;
+
+// 요청마다 getSession() 을 부르지 않는다 — 로그인 상태 변화 때 받은 토큰을 여기에 담아 바로 씁니다.
+// (getSession 을 로그인 콜백 안에서 기다리면 잠금이 겹쳐 화면이 멈출 수 있습니다.)
+let _token = '';
+supabase.auth.onAuthStateChange((_event, session) => { _token = session?.access_token ?? ''; });
+/** 지금 알고 있는 로그인 토큰 (없으면 '') */
+export const authToken = () => _token;

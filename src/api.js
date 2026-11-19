@@ -1,6 +1,6 @@
 // 탄소로운 식탁 · 서버 함수(carbonic-table-fn) 호출 도우미
 // 모든 데이터는 서버 함수를 거칩니다. 브라우저는 표를 직접 읽지 않습니다.
-import { supabase, FN_URL } from './supabase.js';
+import { supabase, FN_URL, authToken } from './supabase.js';
 
 export class ApiError extends Error {
   constructor(message, { status = 0, code = '' } = {}) {
@@ -11,19 +11,15 @@ export class ApiError extends Error {
   }
 }
 
-async function token() {
-  try {
-    const { data } = await supabase.auth.getSession();
-    return data?.session?.access_token ?? '';
-  } catch {
-    return '';
-  }
+// 로그인 토큰은 supabase.js 가 로그인 상태 변화 때 받아 둔 값을 그대로 씁니다 (getSession 을 기다리지 않음)
+function token() {
+  try { return authToken(); } catch { return ''; }
 }
 
 async function request(path, { method = 'GET', body } = {}) {
   const headers = {};
   if (body !== undefined) headers['Content-Type'] = 'application/json';
-  const t = await token();
+  const t = token();
   if (t) headers.Authorization = `Bearer ${t}`;
 
   let res;
