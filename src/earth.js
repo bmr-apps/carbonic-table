@@ -508,11 +508,11 @@ const cloudCount = (t) => Math.round(
 
 // 구름 빛 — 맑은 구름은 희게, 잿빛·먹구름은 단계가 오를수록 어두워집니다
 const cloudTone = (kind, t) => {
-  if (kind === 'clean') return mixColor('#ffffff', '#ffe6d8', Math.pow(t, 1.5));
+  if (kind === 'clean') return mixColor('#ffffff', '#cdd7e3', Math.pow(t, 1.3));
   if (kind === 'grey') return mixColor('#c6cfdb', '#6f7b8a', Math.pow(t, 0.9));
   return mixColor('#9aa6b5', '#2b3442', Math.pow(t, 0.7));
 };
-const cloudOpacity = (kind, t) => (kind === 'clean' ? 0.72 - 0.3 * t : kind === 'grey' ? 0.66 : 0.7 + 0.02 * t);
+const cloudOpacity = (kind, t) => (kind === 'clean' ? 0.72 - 0.27 * t : kind === 'grey' ? 0.66 : 0.7 + 0.02 * t);
 
 // 구름 하나 — 작은 원 세 개와 납작한 밑면. 먹구름은 아래쪽에 어두운 배를 깝니다.
 const cloudOne = (cx, cy, s, fill, op, belly) => {
