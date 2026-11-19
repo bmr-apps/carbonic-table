@@ -4,7 +4,7 @@
 //
 //   GET   /health                       DB 연결 확인 (허브 표준 healthJson)
 //   GET   /hello                        부른 사람과 역할
-//   GET   /state[?season=<id>]          화면 한 벌 — 시즌·지구(탄소·공기)·총합·학년별·회원별·랭킹·피드(반응·댓글)·내 실천·공지·경매 (로그인 없이도 열람)
+//   GET   /state[?season=<id>]          화면 한 벌 — 시즌·지구(탄소·공기)·총합·학년별·회원별·랭킹·피드(반응·댓글)·내 실천·공지·카본 옥션 (로그인 없이도 열람)
 //   GET   /images/:id                   사진 내려 주기 (공개)
 //   POST  /images         {data}        사진 올리기 (로그인·회원, data:image/webp;base64,… 1.2MB까지)
 //   POST  /me            {name, kind}   내 회원 정보 등록·수정 (로그인 필요, 첫 회원은 관리자)
@@ -29,7 +29,7 @@
 //   POST  /auctions/:id/bid {amount}    입찰 — 트랜잭션 + FOR UPDATE 로 경합·초과 입찰 방지
 //   POST  /auctions/:id/close           마감(낙찰 확정) (관리자)
 //   POST  /auctions/:id/cancel          취소 (관리자)
-//   DEL   /auctions/:id                 경매 지우기 (관리자, 대기 중이면 등록자도)
+//   DEL   /auctions/:id                 카본 옥션 지우기 (관리자, 대기 중이면 등록자도)
 //   PATCH /members/:user_id {kind?, is_admin?}   회원 구분·관리자 권한 바꾸기 (관리자)
 //   DEL   /members/:user_id             기록이 없는 회원 정리 (관리자)
 //
@@ -103,7 +103,7 @@ function ensureSchema(sql: Sql): Promise<void> {
         for (const statement of DDL_V2) {
           try { await sql.unsafe(statement); } catch (e) { console.error(FN, 'DDL_V2', (e as Error).message); }
         }
-        // 기본 시즌 — 표에는 한 번만 만들고, 기존 기록·경매는 이 시즌에 그대로 귀속시킨다 (유실 없음)
+        // 기본 시즌 — 표에는 한 번만 만들고, 기존 기록·카본 옥션은 이 시즌에 그대로 귀속시킨다 (유실 없음)
         await sql`
           insert into carbonic_table.seasons (name, status, note)
           select ${DEFAULT_SEASON}, 'active', '탄소로운 식탁을 처음 시작한 시즌'
@@ -119,10 +119,22 @@ function ensureSchema(sql: Sql): Promise<void> {
         await sql`
           insert into carbonic_table.notices (title, body, pinned, author_name)
           select '탄소로운 식탁에 오신 것을 환영해요',
-                 E'별무리 사람들이 기후 실천으로 모은 공기를 기록하는 통장입니다.\n\n· 미션을 골라 실천을 남기면 공기가 쌓여요.\n· 쌓인 공기로 플리마켓 물건을 나눠요(공기 경매).\n· 시즌이 바뀌면 기록·랭킹·경매가 새로 시작됩니다.',
+                 E'별무리 사람들이 기후 실천으로 모은 공기를 기록하는 통장입니다.\n\n· 미션을 골라 실천을 남기면 공기가 쌓여요.\n· 쌓인 공기로 카본 옥션에서 물건을 나눠요.\n· 시즌이 바뀌면 기록·랭킹·카본 옥션이 새로 시작됩니다.',
                  true, '탄소로운 식탁'
           where not exists (select 1 from carbonic_table.notices)`;
       }
+      // 문구 정리 — 처음 넣어 둔 안내 공지가 예전 이름(플리마켓·공기 경매)을 그대로 쓰고 있으면 '카본 옥션'으로 바꾼다 (멱등)
+      await sql`
+        update carbonic_table.notices
+        set body = replace(body, '쌓인 공기로 플리마켓 물건을 나눠요(공기 경매).', '쌓인 공기로 카본 옥션에서 물건을 나눠요.'),
+            updated_at = now()
+        where position('쌓인 공기로 플리마켓 물건을 나눠요(공기 경매).' in body) > 0`;
+      await sql`
+        update carbonic_table.notices
+        set body = replace(body, '기록·랭킹·경매가 새로 시작됩니다.', '기록·랭킹·카본 옥션이 새로 시작됩니다.'),
+            updated_at = now()
+        where position('기록·랭킹·경매가 새로 시작됩니다.' in body) > 0`;
+
       // v3: 지구(탄소·공기) 설정 칸과 사진 저장 표를 안전하게 덧붙인다 (멱등)
       const missingV3 = V3_FLAGS.some((k) => flags[k] !== true);
       if (missingBase || missingV3) {
@@ -279,7 +291,7 @@ async function memberFor(sql: Sql, userId: string): Promise<Member | null> {
 }
 
 type Balance = { earned: number; spent: number; reserved: number; available: number; acts: number };
-/** 그 시즌의 총 적립 - 낙찰 확정(spent) - 진행 중 경매에 묶인 내 최고 입찰(reserved) */
+/** 그 시즌의 총 적립 - 낙찰 확정(spent) - 진행 중 카본 옥션에 묶인 내 최고 입찰(reserved) */
 async function balanceFor(sql: Sql, userId: string, seasonId: number): Promise<Balance> {
   const [row] = await sql`
     select
@@ -1019,7 +1031,7 @@ Deno.serve(async (req) => {
                (select count(*)::int from carbonic_table.seasons) as total` as unknown as Row[];
       if (Number(c?.total ?? 0) <= 1) return json(req, 409, { error: '마지막 시즌은 지울 수 없어요.' });
       if (Number(c?.acts ?? 0) > 0 || Number(c?.aucs ?? 0) > 0) {
-        return json(req, 409, { error: '실천 기록이나 경매가 있는 시즌은 지울 수 없어요. 기록은 그대로 보관해 주세요.' });
+        return json(req, 409, { error: '실천 기록이나 카본 옥션이 있는 시즌은 지울 수 없어요. 기록은 그대로 보관해 주세요.' });
       }
       await db`delete from carbonic_table.seasons where id = ${id}`;
       return json(req, 200, { ok: true, deleted: id });
@@ -1097,7 +1109,7 @@ Deno.serve(async (req) => {
       return json(req, 200, { ok: true, deleted: String(row.id) });
     }
 
-    // ---------- 경매 ----------
+    // ---------- 카본 옥션 ----------
     // 물품 등록 — 로그인한 회원이면 누구나. 바로 입찰되지 않고 waiting(대기·미리보기)으로 올라간다.
     if (parts[0] === 'auctions' && parts.length === 1 && req.method === 'POST') {
       if (!member) return json(req, 400, { error: '먼저 이름과 구분을 등록해 주세요.', code: 'profile_required' });
@@ -1148,11 +1160,11 @@ Deno.serve(async (req) => {
       }
       if (!patch.length) return json(req, 400, { error: '바꿀 내용이 없습니다.' });
       const [a] = await db`select id, status, seller_id, image_url from carbonic_table.auctions where id = ${auctionId}` as unknown as Row[];
-      if (!a) return json(req, 404, { error: '그 경매를 찾지 못했어요.' });
+      if (!a) return json(req, 404, { error: '그 카본 옥션을 찾지 못했어요.' });
       const mine = a.seller_id != null && String(a.seller_id) === user!.id;
       if (!isAdmin && !mine) return json(req, 403, { error: '등록한 본인이나 관리자만 고칠 수 있어요.' });
       if (String(a.status) !== 'waiting') {
-        return json(req, 409, { error: '경매가 시작된 뒤에는 고칠 수 없어요. 관리자에게 문의해 주세요.' });
+        return json(req, 409, { error: '카본 옥션이 시작된 뒤에는 고칠 수 없어요. 관리자에게 문의해 주세요.' });
       }
       values.push(Number(auctionId));
       const [row] = await db.unsafe(
@@ -1166,15 +1178,15 @@ Deno.serve(async (req) => {
       return json(req, 200, { ok: true, auction: row });
     }
 
-    // 대기 → 경매 시작 (관리자)
+    // 대기 → 카본 옥션 시작 (관리자)
     if (parts[0] === 'auctions' && parts[1] && parts[2] === 'start' && req.method === 'POST') {
       requireAdmin();
       const auctionId = idOf(parts[1]);
       const seasonId = await currentSeasonId();
       const out = await db.begin(async (tx) => {
         const [a] = await tx`select id, status, title from carbonic_table.auctions where id = ${auctionId} for update` as unknown as Row[];
-        if (!a) throw new HttpError(404, '그 경매를 찾지 못했어요.');
-        if (String(a.status) !== 'waiting') throw new HttpError(409, '대기 중인 물품만 경매를 시작할 수 있어요.');
+        if (!a) throw new HttpError(404, '그 카본 옥션을 찾지 못했어요.');
+        if (String(a.status) !== 'waiting') throw new HttpError(409, '대기 중인 물품만 카본 옥션을 시작할 수 있어요.');
         const [row] = await tx`
           update carbonic_table.auctions set status = 'open', started_at = now(), season_id = ${seasonId}
           where id = ${auctionId}
@@ -1193,21 +1205,21 @@ Deno.serve(async (req) => {
       if (amount == null) return json(req, 400, { error: '입찰 공기를 1 이상 숫자로 적어 주세요.' });
 
       const out = await db.begin(async (tx) => {
-        // ① 이 경매를 잠근다 → 같은 경매 입찰은 한 줄로 줄을 선다
+        // ① 이 카본 옥션을 잠근다 → 같은 카본 옥션 입찰은 한 줄로 줄을 선다
         const [a] = await tx`
           select id, status, start_price, min_step, title, season_id, seller_id
           from carbonic_table.auctions where id = ${auctionId} for update` as unknown as Row[];
-        if (!a) throw new HttpError(404, '그 경매를 찾지 못했어요.');
+        if (!a) throw new HttpError(404, '그 카본 옥션을 찾지 못했어요.');
         if (String(a.status) !== 'open') {
           throw new HttpError(409, String(a.status) === 'waiting'
-            ? '아직 관리자가 경매를 시작하지 않은 물품이에요. 대기 중 목록에서 구경할 수 있어요.'
-            : '이미 마감되었거나 취소된 경매예요.');
+            ? '아직 관리자가 카본 옥션을 시작하지 않은 물품이에요. 대기 중 목록에서 구경할 수 있어요.'
+            : '이미 마감되었거나 취소된 카본 옥션이에요.');
         }
         if (a.seller_id != null && String(a.seller_id) === user!.id) {
           throw new HttpError(409, '내가 올린 물품에는 입찰할 수 없어요.');
         }
 
-        // ② 이 회원 줄을 잠근다 → 여러 경매에 동시에 입찰해도 사용 가능 공기를 넘지 않는다
+        // ② 이 회원 줄을 잠근다 → 여러 카본 옥션에 동시에 입찰해도 사용 가능 공기를 넘지 않는다
         const [m] = await tx`select user_id from carbonic_table.members where user_id = ${user!.id} for update` as unknown as Row[];
         if (!m) throw new HttpError(400, '먼저 이름과 구분을 등록해 주세요.');
 
@@ -1234,10 +1246,10 @@ Deno.serve(async (req) => {
                       where b.user_id = ${user!.id} and b.status = 'active' and a.status = 'open'
                         and a.season_id = ${seasonId}), 0) as reserved` as unknown as Row[];
         const earned = Number(b?.earned ?? 0), spent = Number(b?.spent ?? 0), reserved = Number(b?.reserved ?? 0);
-        // 내가 이 경매에서 이미 최고 입찰자라면 그 예약은 새 입찰로 바뀌므로 함께 쓸 수 있다
+        // 내가 이 카본 옥션에서 이미 최고 입찰자라면 그 예약은 새 입찰로 바뀌므로 함께 쓸 수 있다
         const available = earned - spent - reserved + (mineTop ? Number(mineTop.amount) : 0);
         if (amount > available) {
-          throw new HttpError(400, `이 시즌에 쓸 수 있는 공기는 ${available}공기예요. (총 적립 ${earned} · 낙찰 ${spent} · 경매에 묶인 공기 ${reserved - (mineTop ? Number(mineTop.amount) : 0)})`);
+          throw new HttpError(400, `이 시즌에 쓸 수 있는 공기는 ${available}공기예요. (총 적립 ${earned} · 낙찰 ${spent} · 카본 옥션에 묶인 공기 ${reserved - (mineTop ? Number(mineTop.amount) : 0)})`);
         }
 
         if (top) await tx`update carbonic_table.bids set status = 'outbid' where id = ${Number(top.id)}`;
@@ -1260,8 +1272,8 @@ Deno.serve(async (req) => {
       const auctionId = idOf(parts[1]);
       const out = await db.begin(async (tx) => {
         const [a] = await tx`select id, status, title from carbonic_table.auctions where id = ${auctionId} for update` as unknown as Row[];
-        if (!a) throw new HttpError(404, '그 경매를 찾지 못했어요.');
-        if (String(a.status) !== 'open') throw new HttpError(409, '이미 마감되었거나 취소된 경매예요.');
+        if (!a) throw new HttpError(404, '그 카본 옥션을 찾지 못했어요.');
+        if (String(a.status) !== 'open') throw new HttpError(409, '이미 마감되었거나 취소된 카본 옥션이에요.');
         const [top] = await tx`
           select id, user_id, bidder_name, bidder_kind, amount from carbonic_table.bids
           where auction_id = ${auctionId} and status = 'active' order by amount desc, id desc limit 1 for update` as unknown as Row[];
@@ -1285,8 +1297,8 @@ Deno.serve(async (req) => {
       const auctionId = idOf(parts[1]);
       const out = await db.begin(async (tx) => {
         const [a] = await tx`select id, status from carbonic_table.auctions where id = ${auctionId} for update` as unknown as Row[];
-        if (!a) throw new HttpError(404, '그 경매를 찾지 못했어요.');
-        if (!['waiting', 'open'].includes(String(a.status))) throw new HttpError(409, '이미 마감되었거나 취소된 경매예요.');
+        if (!a) throw new HttpError(404, '그 카본 옥션을 찾지 못했어요.');
+        if (!['waiting', 'open'].includes(String(a.status))) throw new HttpError(409, '이미 마감되었거나 취소된 카본 옥션이에요.');
         // 진행 중 입찰의 예약을 풀어 준다
         await tx`update carbonic_table.bids set status = 'canceled' where auction_id = ${auctionId} and status = 'active'`;
         await tx`update carbonic_table.auctions set status = 'canceled', closed_at = now() where id = ${auctionId}`;
@@ -1299,14 +1311,14 @@ Deno.serve(async (req) => {
       const auctionId = idOf(parts[1]);
       const out = await db.begin(async (tx) => {
         const [a] = await tx`select id, status, seller_id from carbonic_table.auctions where id = ${auctionId} for update` as unknown as Row[];
-        if (!a) throw new HttpError(404, '그 경매를 찾지 못했어요.');
+        if (!a) throw new HttpError(404, '그 카본 옥션을 찾지 못했어요.');
         const mineWaiting = String(a.status) === 'waiting' && a.seller_id != null && String(a.seller_id) === user!.id;
         if (!isAdmin && !mineWaiting) throw new HttpError(403, '관리자만 지울 수 있어요. (대기 중인 내 물품은 직접 지울 수 있어요)');
         const [c] = await tx`select count(*)::int as n from carbonic_table.bids where auction_id = ${auctionId}` as unknown as Row[];
-        // 낙찰 기록이 남은 경매를 지우면 회원의 사용 공기가 달라진다 → 취소했거나 입찰이 없을 때만 지운다
-        // 진행 중인 경매에 입찰이 있으면 먼저 취소해야 한다 (마감·취소된 경매는 정리할 수 있음)
+        // 낙찰 기록이 남은 카본 옥션을 지우면 회원의 사용 공기가 달라진다 → 취소했거나 입찰이 없을 때만 지운다
+        // 진행 중인 카본 옥션에 입찰이 있으면 먼저 취소해야 한다 (마감·취소된 카본 옥션은 정리할 수 있음)
         if (Number(c?.n ?? 0) > 0 && String(a.status) === 'open') {
-          throw new HttpError(409, '진행 중인 경매는 먼저 취소한 뒤에 지울 수 있어요.');
+          throw new HttpError(409, '진행 중인 카본 옥션은 먼저 취소한 뒤에 지울 수 있어요.');
         }
         const [img] = await tx`select image_url from carbonic_table.auctions where id = ${auctionId}` as unknown as Row[];
         await tx`delete from carbonic_table.bids where auction_id = ${auctionId}`;

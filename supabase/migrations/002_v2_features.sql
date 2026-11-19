@@ -107,6 +107,6 @@ update carbonic_table.members
 -- 11) 첫 안내 공지 (공지가 비어 있을 때 한 번)
 insert into carbonic_table.notices (title, body, pinned, author_name)
 select '탄소로운 식탁에 오신 것을 환영해요',
-       E'별무리 사람들이 기후 실천으로 모은 공기를 기록하는 통장입니다.\n\n· 미션을 골라 실천을 남기면 공기가 쌓여요.\n· 쌓인 공기로 플리마켓 물건을 나눠요(공기 경매).\n· 시즌이 바뀌면 기록·랭킹·경매가 새로 시작됩니다.',
+       E'별무리 사람들이 기후 실천으로 모은 공기를 기록하는 통장입니다.\n\n· 미션을 골라 실천을 남기면 공기가 쌓여요.\n· 쌓인 공기로 카본 옥션에서 물건을 나눠요.\n· 시즌이 바뀌면 기록·랭킹·카본 옥션이 새로 시작됩니다.',
        true, '탄소로운 식탁'
 where not exists (select 1 from carbonic_table.notices);

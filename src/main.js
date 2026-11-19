@@ -7,6 +7,7 @@ import { loginWithGoogle, logout, onUserChange } from './auth.js';
 import { local } from './store.js';
 import { FN_URL } from './supabase.js';
 import { api, ApiError } from './api.js';
+import { earthLook, earthSvg } from './earth.js';
 
 // ---------- 작은 도우미 ----------
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -73,53 +74,7 @@ function icon(name, cls = 'ico') {
 
 // ---------- 지구(탄소·공기) ----------
 // 탄소는 시즌의 기준 시각부터 한 시간마다 쌓이고, 공기가 쌓이면 그만큼 지구가 맑아져요.
-const hexOf = (h) => {
-  const s = String(h).replace('#', '');
-  return [0, 2, 4].map((i) => parseInt(s.slice(i, i + 2), 16));
-};
-const mixColor = (a, b, t) => {
-  const A = hexOf(a), B = hexOf(b), k = Math.max(0, Math.min(1, Number(t) || 0));
-  return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * k).toString(16).padStart(2, '0')).join('');
-};
-function earthLook(p) {
-  const t = Math.max(0, Math.min(1, Number(p) || 0));
-  return {
-    ocean: mixColor('#2f8fd0', '#a3352a', t),
-    oceanLight: mixColor('#7cc7ee', '#f2a06a', t),
-    land: mixColor('#3f9e63', '#e0563c', t),
-    haze: mixColor('#eaf4ff', '#8a1f12', t * 0.92),
-    ring: mixColor('#38bdf8', '#ef4444', t),
-    label: t < 0.05 ? '맑음' : t < 0.35 ? '조금 흐림' : t < 0.7 ? '뿌옇게 덮임' : '붉게 달아오름',
-  };
-}
-function earthSvg(p) {
-  const t = Math.max(0, Math.min(1, Number(p) || 0));
-  const c = earthLook(t);
-  const hazeOp = (0.05 + t * 0.52).toFixed(2);
-  const ringW = (1.5 + t * 7).toFixed(1);
-  const ringOp = (0.12 + t * 0.6).toFixed(2);
-  return `<svg class="earth-svg" viewBox="0 0 240 240" role="img" aria-label="지구 오염도 ${Math.round(t * 100)}%">
-    <defs>
-      <radialGradient id="earth-ocean" cx="34%" cy="28%" r="80%">
-        <stop offset="0%" stop-color="${c.oceanLight}"/>
-        <stop offset="62%" stop-color="${c.ocean}"/>
-        <stop offset="100%" stop-color="${mixColor(c.ocean, '#001018', 0.4)}"/>
-      </radialGradient>
-      <clipPath id="earth-clip"><circle cx="120" cy="120" r="92"/></clipPath>
-    </defs>
-    <circle cx="120" cy="120" r="92" fill="url(#earth-ocean)" stroke="#000" stroke-width="3"/>
-    <g clip-path="url(#earth-clip)">
-      <path d="M68 70c14-12 36-8 42 4 5 10-5 18-17 20-10 2-16 11-27 7-11-4-8-23 2-31z" fill="${c.land}" stroke="#000" stroke-width="1.6" stroke-linejoin="round"/>
-      <path d="M95 130c12-6 27-2 31 8 4 10-2 19-10 27-8 8-19 6-23-4-4-9-7-25 2-31z" fill="${c.land}" stroke="#000" stroke-width="1.6" stroke-linejoin="round"/>
-      <path d="M150 92c11-4 23 0 25 8 2 9-8 15-17 13-8-2-14-15-8-21z" fill="${c.land}" stroke="#000" stroke-width="1.6" stroke-linejoin="round"/>
-      <path d="M148 152c8-4 18 0 18 8 0 7-8 12-16 9-7-3-6-14-2-17z" fill="${c.land}" stroke="#000" stroke-width="1.6" stroke-linejoin="round"/>
-      <circle cx="120" cy="120" r="92" fill="${c.haze}" opacity="${hazeOp}"/>
-    </g>
-    <circle cx="120" cy="120" r="99" fill="none" stroke="${c.ring}" stroke-width="${ringW}" opacity="${ringOp}"/>
-    <circle cx="120" cy="120" r="92" fill="none" stroke="#000" stroke-width="3"/>
-  </svg>`;
-}
-
+// 지구 그림은 src/earth.js 가 그립니다 (맑은 자연 지구 → 붉게 달아오른 지구로 색을 이어서).
 let serverOffset = 0;   // 서버 시각 − 브라우저 시각 (밀리초)
 function liveEarth() {
   const s = seasonOf();
@@ -176,7 +131,7 @@ const state = {
   adminTab: 'notice',
   missionAdminQuery: '',
   openComments: {},        // { [activityId]: true }
-  lotForm: null,           // null | 'new' | 경매 id
+  lotForm: null,           // null | 'new' | 카본 옥션 id
   editNotice: null,        // 공지 수정 중인 id
   editSeason: null,
 };
@@ -395,14 +350,14 @@ function homeView() {
           <span class="num">${nf(total)}</span>
           <span class="unit">공기의 실천!</span>
         </h1>
-        <p>작은 실천 하나가 공기 한 줌이 됩니다. 별무리 사람들이 함께 모은 공기를 한눈에 보고, 모은 공기로 플리마켓 물건을 나눠요.</p>
+        <p>작은 실천 하나가 공기 한 줌이 됩니다. 별무리 사람들이 함께 모은 공기를 한눈에 보고, 모은 공기로 카본 옥션에서 물건을 나눠요.</p>
         <div class="hero-season">
           <span class="season-chip">${icon('leaf', 'ico sm')} ${esc(season?.name || '시즌 준비 중')}</span>
           ${season && season.status !== 'active' ? '<span class="season-chip off">지난 시즌을 보는 중</span>' : ''}
         </div>
         <div class="hero-actions">
           <button type="button" class="btn primary" data-action="go" data-view="practices">＋ 실천 등록하기</button>
-          <button type="button" class="btn" data-action="go" data-view="auctions">공기 경매 보기</button>
+          <button type="button" class="btn" data-action="go" data-view="auctions">카본 옥션 보기</button>
         </div>
         <div class="bubbles" aria-hidden="true">${icon('bubble', 'ico bub a')}${icon('bubble', 'ico bub b')}${icon('bubble', 'ico bub c')}</div>
       </div>
@@ -464,14 +419,14 @@ function homeView() {
             <tr>
               <th scope="col">구분</th><th scope="col">이름</th>
               <th scope="col" class="num">총 적립</th><th scope="col" class="num">낙찰 사용</th>
-              <th scope="col" class="num">경매 예약</th><th scope="col" class="num">남은 공기</th>
+              <th scope="col" class="num">카본 옥션 예약</th><th scope="col" class="num">남은 공기</th>
               <th scope="col">최근 실천</th>
             </tr>
           </thead>
           <tbody id="member-rows">${memberRowsHtml()}</tbody>
         </table>
       </div>
-      <p class="hint mt8">남은 공기 = 총 적립 − 낙찰 확정 − 진행 중 경매에서 내가 최고 입찰자로 묶인 공기 (모두 이번 시즌 기준)</p>
+      <p class="hint mt8">남은 공기 = 총 적립 − 낙찰 확정 − 진행 중인 카본 옥션에서 내가 최고 입찰자로 묶인 공기 (모두 이번 시즌 기준)</p>
     </section>
   </div>`;
 }
@@ -517,7 +472,7 @@ function ledgerCard(me) {
   if (!state.user) {
     return `<div class="card-head"><h2>내 통장</h2></div>
       <div class="guest-cta">
-        <p>구글 로그인하고 내 공기를 모아 보세요. 로그인하지 않아도 아래 현황·공지·경매는 모두 볼 수 있어요.</p>
+        <p>구글 로그인하고 내 공기를 모아 보세요. 로그인하지 않아도 아래 현황·공지·카본 옥션은 모두 볼 수 있어요.</p>
         <button type="button" class="btn google" data-action="login"><span class="g" aria-hidden="true">G</span> 구글 로그인</button>
       </div>`;
   }
@@ -534,7 +489,7 @@ function ledgerCard(me) {
     <div class="tiles">
       <div class="tile"><small>총 적립</small><b>${nf(me.earned)}<span class="u">공기</span></b></div>
       <div class="tile"><small>낙찰 사용</small><b>${nf(me.spent)}<span class="u">공기</span></b></div>
-      <div class="tile warn"><small>경매 예약</small><b>${nf(me.reserved)}<span class="u">공기</span></b></div>
+      <div class="tile warn"><small>카본 옥션 예약</small><b>${nf(me.reserved)}<span class="u">공기</span></b></div>
       <div class="tile hot"><small>남은 공기</small><b>${nf(me.available)}<span class="u">공기</span></b></div>
     </div>
     <div class="ledger-grow">
@@ -682,7 +637,7 @@ function practicesView() {
       <h1>로그인하고 공기를 모아요</h1>
       <p>실천을 기록하려면 BMR APPS 계정으로 로그인해 주세요. 구글 계정이면 바로 들어올 수 있어요.</p>
       <div class="form-actions"><button type="button" class="btn google" data-action="login"><span class="g" aria-hidden="true">G</span> 구글 로그인</button></div>
-      <p class="hint">로그인하지 않아도 현황·공지·경매는 볼 수 있어요.</p>
+      <p class="hint">로그인하지 않아도 현황·공지·카본 옥션은 볼 수 있어요.</p>
     </section></div>`;
   }
   if (!me?.registered) {
@@ -1047,7 +1002,7 @@ function rankingView() {
   </div>`;
 }
 
-// ---------- 공기 경매 ----------
+// ---------- 카본 옥션 ----------
 function auctionsView() {
   const data = d();
   const me = data.me;
@@ -1062,11 +1017,11 @@ function auctionsView() {
 
   return `<div class="wrap">
     <div class="section-head">
-      <h2>${icon('leaf', 'ico lg')} 공기 경매 · 플리마켓</h2>
+      <h2>${icon('leaf', 'ico lg')} 카본 옥션</h2>
       <span class="eyebrow">${esc(season?.name || '')} · 모은 공기로 물건 나누기</span>
     </div>
     <div class="op-bar">
-      <p class="hint">입찰하는 순간 그 공기는 경매가 끝날 때까지 묶여요. 다른 사람이 더 높게 부르면 바로 풀립니다. 물품은 먼저 <b>대기</b>로 올라가고, 관리자가 <b>경매 시작</b>을 누르면 입찰할 수 있어요.</p>
+      <p class="hint">입찰하는 순간 그 공기는 카본 옥션이 끝날 때까지 묶여요. 다른 사람이 더 높게 부르면 바로 풀립니다. 물품은 먼저 <b>대기</b>로 올라가고, 관리자가 <b>카본 옥션 시작</b>을 누르면 입찰할 수 있어요.</p>
       <div class="form-actions">
         <button type="button" class="btn sm ghost" data-action="refresh">↻ 새로고침</button>
         ${canSell ? `<button type="button" class="btn sm primary" data-action="new-lot">${showForm ? '등록 닫기' : '＋ 물품 등록'}</button>` : ''}
@@ -1081,9 +1036,9 @@ function auctionsView() {
     ${showForm ? lotForm() : ''}
 
     <section class="section" aria-labelledby="auc-open">
-      <div class="section-head"><h2 id="auc-open">진행 중인 경매</h2><span class="eyebrow">${nf(open.length)}건</span></div>
+      <div class="section-head"><h2 id="auc-open">진행 중인 카본 옥션</h2><span class="eyebrow">${nf(open.length)}건</span></div>
       ${open.length ? `<div class="auctions">${open.map((a) => auctionCard(a)).join('')}</div>`
-        : `<div class="empty"><b>지금 열린 경매가 없어요.</b>${canSell ? '물품을 등록하면 관리자가 시작할 수 있어요.' : '새 물건이 올라오면 여기에서 입찰할 수 있어요.'}</div>`}
+        : `<div class="empty"><b>지금 열린 카본 옥션이 없어요.</b>${canSell ? '물품을 등록하면 관리자가 시작할 수 있어요.' : '새 물건이 올라오면 여기에서 입찰할 수 있어요.'}</div>`}
     </section>
 
     <section class="section" aria-labelledby="auc-wait">
@@ -1091,18 +1046,18 @@ function auctionsView() {
         <h2 id="auc-wait">대기 중인 물품 <span class="badge soft">미리보기</span></h2>
         <span class="eyebrow">${nf(waiting.length)}건</span>
       </div>
-      <p class="hint mb16">회원이 올린 물품이에요. 관리자가 경매를 시작하면 입찰할 수 있습니다.</p>
+      <p class="hint mb16">회원이 올린 물품이에요. 관리자가 카본 옥션을 시작하면 입찰할 수 있습니다.</p>
       ${waiting.length ? `<div class="auctions">${waiting.map((a) => auctionCard(a)).join('')}</div>`
         : `<div class="empty"><b>대기 중인 물품이 없어요.</b>${canSell ? '내 물건을 먼저 올려 보세요.' : ''}</div>`}
     </section>
 
     ${closed.length ? `<section class="section" aria-labelledby="auc-closed">
-      <div class="section-head"><h2 id="auc-closed">지난 경매 결과</h2><span class="eyebrow">${nf(closed.length)}건</span></div>
+      <div class="section-head"><h2 id="auc-closed">지난 카본 옥션 결과</h2><span class="eyebrow">${nf(closed.length)}건</span></div>
       <div class="auctions">${closed.map((a) => auctionCard(a)).join('')}</div>
     </section>` : ''}
 
     ${admin && canceled.length ? `<section class="section" aria-labelledby="auc-canceled">
-      <div class="section-head"><h2 id="auc-canceled">취소한 경매</h2><span class="eyebrow">관리자만 보임</span></div>
+      <div class="section-head"><h2 id="auc-canceled">취소한 카본 옥션</h2><span class="eyebrow">관리자만 보임</span></div>
       <div class="auctions">${canceled.map((a) => auctionCard(a)).join('')}</div>
     </section>` : ''}
   </div>`;
@@ -1113,7 +1068,7 @@ function lotForm() {
     ? d().auctions.find((a) => a.id === state.lotForm) || null
     : null;
   return `<form class="card op-form" data-action="lot" id="lot-form">
-    <div class="card-head"><h2>${editing ? '물품 고치기' : '경매 물품 등록 (대기)'}</h2>
+    <div class="card-head"><h2>${editing ? '물품 고치기' : '카본 옥션 물품 등록 (대기)'}</h2>
       <span class="badge ${editing ? 'open' : ''}">${editing ? '대기 중' : '등록하면 대기'}</span></div>
     <div class="form-grid">
       <label class="field"><span>물품 이름</span><input type="text" name="title" maxlength="60" placeholder="예: 텀블러 (새 것)" value="${esc(editing?.title || '')}" required></label>
@@ -1123,7 +1078,7 @@ function lotForm() {
         <label class="field"><span>최소 입찰 단위 (공기)</span><input type="number" name="min_step" min="1" max="10000" step="1" value="${editing ? editing.min_step : 1}" required></label>
       </div>
       <div id="image-field-lot">${imageFieldHtml('lot', '물품 사진')}</div>
-      <p class="hint">등록한 물품은 <b>대기</b>로 올라가 모두가 미리 구경할 수 있어요. 관리자가 <b>경매 시작</b>을 누르면 입찰이 열립니다.</p>
+      <p class="hint">등록한 물품은 <b>대기</b>로 올라가 모두가 미리 구경할 수 있어요. 관리자가 <b>카본 옥션 시작</b>을 누르면 입찰이 열립니다.</p>
       <div class="form-actions">
         <button type="submit" class="btn primary">${editing ? '저장' : '물품 등록'}</button>
         <button type="button" class="btn ghost" data-action="cancel-lot">닫기</button>
@@ -1176,7 +1131,7 @@ function auctionCard(a) {
     : '';
 
   const adminActions = [];
-  if (admin && waiting) adminActions.push(`<button type="button" class="btn tiny primary" data-action="start-auction" data-id="${esc(a.id)}">경매 시작</button>`);
+  if (admin && waiting) adminActions.push(`<button type="button" class="btn tiny primary" data-action="start-auction" data-id="${esc(a.id)}">카본 옥션 시작</button>`);
   if (admin && open) adminActions.push(`<button type="button" class="btn tiny" data-action="close-auction" data-id="${esc(a.id)}">마감하기</button>`);
   if (admin && (open || waiting)) adminActions.push(`<button type="button" class="btn tiny danger" data-action="cancel-auction" data-id="${esc(a.id)}">취소하기</button>`);
   if (admin && (a.status === 'closed' || a.status === 'canceled')) adminActions.push(`<button type="button" class="btn tiny ghost" data-action="delete-auction" data-id="${esc(a.id)}">목록에서 지우기</button>`);
@@ -1197,7 +1152,7 @@ function auctionCard(a) {
       ${open ? `<div class="topline ${mineTop ? 'mine' : ''}">${a.highest
         ? `${mineTop ? '<b>내가</b>' : `<b>${esc(a.highest.name)}</b>님이`} ${nf(a.highest.amount)}공기로 앞서 있어요`
         : '아직 입찰이 없어요. 첫 입찰자가 되어 보세요.'}</div>` : ''}
-      ${waiting ? `<div class="topline waiting">${icon('bulb', 'ico sm')} 아직 경매 전이에요. 관리자가 시작하면 입찰할 수 있어요.</div>` : ''}
+      ${waiting ? `<div class="topline waiting">${icon('bulb', 'ico sm')} 아직 카본 옥션이 시작되지 않았어요. 관리자가 시작하면 입찰할 수 있어요.</div>` : ''}
       ${winnerBox}
       ${bidArea}
       ${bidLog}
@@ -1219,7 +1174,7 @@ function adminView() {
   const tabs = [
     ['notice', '📢 공지'],
     ['season', '🗓️ 시즌'],
-    ['auction', '🔨 경매'],
+    ['auction', '🔨 카본 옥션'],
     ['member', '👥 회원'],
     ['mission', '🌱 미션'],
   ];
@@ -1253,7 +1208,7 @@ function adminNotices() {
     <div class="card-head"><h2 id="admin-notice">공지 관리</h2><span class="badge soft">${nf(d().notices.length)}개</span></div>
     <form class="form-grid mb16" data-action="notice" id="notice-form">
       <div class="form-row">
-        <label class="field span2"><span>제목</span><input type="text" name="title" maxlength="80" value="${esc(editing?.title || '')}" placeholder="예: 이번 주 플리마켓 안내" required></label>
+        <label class="field span2"><span>제목</span><input type="text" name="title" maxlength="80" value="${esc(editing?.title || '')}" placeholder="예: 이번 주 카본 옥션 안내" required></label>
       </div>
       <label class="field"><span>본문</span><textarea name="body" rows="3" maxlength="2000" placeholder="모두에게 보여 줄 내용">${esc(editing?.body || '')}</textarea></label>
       <div id="image-field-notice">${imageFieldHtml('notice', '공지 사진')}</div>
@@ -1305,14 +1260,14 @@ function adminSeasons() {
         <label class="field"><span>메모 (선택)</span><input type="text" name="note" maxlength="200" placeholder="예: 2학기 실천 통장"></label>
       </div>
       <div class="form-actions"><button type="submit" class="btn primary">새 시즌 만들기</button></div>
-      <p class="hint">새 시즌은 <b>예정</b>으로 만들어져요. <b>활성으로 전환</b>하면 그때부터 실천·경매가 새 시즌에 쌓이고, 지금 시즌은 자동으로 끝나요(기록은 그대로 남습니다).</p>
+      <p class="hint">새 시즌은 <b>예정</b>으로 만들어져요. <b>활성으로 전환</b>하면 그때부터 실천·카본 옥션이 새 시즌에 쌓이고, 지금 시즌은 자동으로 끝나요(기록은 그대로 남습니다).</p>
     </form>
     <ul class="admin-list season-list">
       ${list.map((s) => `
         <li class="${s.id === cur?.id ? 'current' : ''}">
           <div class="admin-list-main">
             <b>${esc(s.name)} ${s.status === 'active' ? '<span class="badge open">진행 중</span>' : s.status === 'planned' ? '<span class="badge wait">예정</span>' : '<span class="badge closed">지난 시즌</span>'}${s.id === cur?.id ? ' <span class="badge soft">보는 중</span>' : ''}</b>
-            <small>${nf(s.air)}공기 · 실천 ${nf(s.count)}건 · ${nf(s.people)}명 · 경매 ${nf(s.auctions)}건${s.ended_at ? ` · ${fmtDay(String(s.ended_at).slice(0, 10))} 종료` : ''}${s.note ? ` · ${esc(s.note)}` : ''}</small>
+            <small>${nf(s.air)}공기 · 실천 ${nf(s.count)}건 · ${nf(s.people)}명 · 카본 옥션 ${nf(s.auctions)}건${s.ended_at ? ` · ${fmtDay(String(s.ended_at).slice(0, 10))} 종료` : ''}${s.note ? ` · ${esc(s.note)}` : ''}</small>
           </div>
           <div class="row-actions">
             ${s.status !== 'active' ? `<button type="button" class="btn tiny primary" data-action="season-activate" data-id="${s.id}">활성으로 전환</button>` : ''}
@@ -1329,9 +1284,9 @@ function adminAuctions() {
   const waiting = d().auctions.filter((a) => a.status === 'waiting');
   const open = d().auctions.filter((a) => a.status === 'open');
   return `<section class="card admin-panel" aria-labelledby="admin-auction">
-    <div class="card-head"><h2 id="admin-auction">경매 운영</h2>
+    <div class="card-head"><h2 id="admin-auction">카본 옥션 운영</h2>
       <span class="badge soft">대기 ${nf(waiting.length)} · 진행 ${nf(open.length)}</span></div>
-    <p class="hint mb16">회원이 올린 물품은 대기 상태예요. <b>경매 시작</b>을 누르면 입찰이 열리고, <b>마감</b>하면 최고 입찰자가 낙찰받아요.</p>
+    <p class="hint mb16">회원이 올린 물품은 대기 상태예요. <b>카본 옥션 시작</b>을 누르면 입찰이 열리고, <b>마감</b>하면 최고 입찰자가 낙찰받아요.</p>
     <h3 class="sub-title">대기 중 (${nf(waiting.length)})</h3>
     ${waiting.length ? `<ul class="admin-list">${waiting.map((a) => `
       <li>
@@ -1340,7 +1295,7 @@ function adminAuctions() {
           <small>올린 사람 ${esc(a.seller_name || '관리자')} · 시작가 ${nf(a.start_price)}공기 · 단위 ${nf(a.min_step)} · ${fmtWhen(a.created_at)}</small>
         </div>
         <div class="row-actions">
-          <button type="button" class="btn tiny primary" data-action="start-auction" data-id="${esc(a.id)}">경매 시작</button>
+          <button type="button" class="btn tiny primary" data-action="start-auction" data-id="${esc(a.id)}">카본 옥션 시작</button>
           <button type="button" class="btn tiny ghost" data-action="edit-lot" data-id="${esc(a.id)}">고치기</button>
           <button type="button" class="btn tiny danger" data-action="cancel-auction" data-id="${esc(a.id)}">취소</button>
         </div>
@@ -1356,7 +1311,7 @@ function adminAuctions() {
           <button type="button" class="btn tiny primary" data-action="close-auction" data-id="${esc(a.id)}">마감</button>
           <button type="button" class="btn tiny danger" data-action="cancel-auction" data-id="${esc(a.id)}">취소</button>
         </div>
-      </li>`).join('')}</ul>` : '<div class="empty"><b>진행 중인 경매가 없어요.</b></div>'}
+      </li>`).join('')}</ul>` : '<div class="empty"><b>진행 중인 카본 옥션이 없어요.</b></div>'}
   </section>`;
 }
 
@@ -1364,7 +1319,7 @@ function adminMembers() {
   const list = d().members.slice().sort((a, b) => b.earned - a.earned || a.name.localeCompare(b.name, 'ko'));
   return `<section class="card admin-panel" aria-labelledby="admin-member">
     <div class="card-head"><h2 id="admin-member">회원 관리</h2><span class="badge soft">${nf(list.length)}명</span></div>
-    <p class="hint mb16">구분은 랭킹·통계에 쓰여요. <b>관리자</b>로 지정하면 공지·시즌·경매·미션을 운영할 수 있어요. (허브 관리자·교직원은 자동으로 관리자예요.)</p>
+    <p class="hint mb16">구분은 랭킹·통계에 쓰여요. <b>관리자</b>로 지정하면 공지·시즌·카본 옥션·미션을 운영할 수 있어요. (허브 관리자·교직원은 자동으로 관리자예요.)</p>
     <div class="table-scroll">
       <table class="board">
         <thead><tr><th scope="col">이름</th><th scope="col">구분</th><th scope="col" class="num">적립</th><th scope="col" class="num">실천</th><th scope="col">관리자</th><th scope="col">최근 실천</th><th scope="col"></th></tr></thead>
@@ -1441,6 +1396,27 @@ async function withBusy(btn, fn) {
   finally { if (btn) { btn.disabled = false; btn.innerHTML = old; delete btn.dataset.busy; } }
 }
 
+// 구글 로그인 — 상단 버튼(#login)과 화면 안 버튼이 모두 data-action="login" 으로 들어옵니다.
+// (v3 초기에는 상단 버튼에 data-action 이 없어 눌러도 아무 일도 일어나지 않았습니다.)
+// 로그인 시작이 실패하면(리다이렉트 주소·네트워크 문제 등) 조용히 멈추지 않고 알려 줍니다.
+let signingIn = false;
+async function startLogin() {
+  if (signingIn) return;
+  signingIn = true;
+  const btns = $$('[data-action="login"], #login');
+  const restore = () => { signingIn = false; for (const b of btns) b.disabled = false; };
+  for (const b of btns) b.disabled = true;
+  try {
+    const { error } = await loginWithGoogle();
+    if (error) throw error;
+    // 성공하면 곧 구글 화면으로 이동합니다. 이동이 막힌 경우를 대비해 잠시 뒤 다시 누를 수 있게 풉니다.
+    window.setTimeout(restore, 8000);
+  } catch (err) {
+    restore();
+    toast(err?.message ? `구글 로그인을 시작하지 못했어요. ${err.message}` : '구글 로그인을 시작하지 못했어요. 잠시 뒤 다시 시도해 주세요.', 'err');
+  }
+}
+
 document.addEventListener('click', async (e) => {
   const navBtn = e.target.closest('#nav [data-nav]');
   if (navBtn) { switchView(navBtn.dataset.nav); return; }
@@ -1449,7 +1425,7 @@ document.addEventListener('click', async (e) => {
   if (!el) return;
   const action = el.dataset.action;
   if (action === 'go') { switchView(el.dataset.view || 'home'); return; }
-  if (action === 'login') { loginWithGoogle(); return; }
+  if (action === 'login') { await startLogin(); return; }
   if (action === 'logout') {
     try {
       await logout();
@@ -1592,21 +1568,21 @@ document.addEventListener('click', async (e) => {
     const win = action === 'close-auction';
     const start = action === 'start-auction';
     const del = action === 'delete-auction';
-    const ok = await askConfirm(start ? '이 물품의 경매를 시작할까요? 시작하면 모두 입찰할 수 있어요.'
-      : win ? '지금 최고 입찰자를 낙찰자로 확정하고 경매를 마감할까요?'
-        : del ? '이 물품을 목록에서 지울까요? (지난 기록도 함께 사라져요)' : '이 경매를 취소할까요? 묶여 있던 입찰 공기는 모두 풀립니다.');
+    const ok = await askConfirm(start ? '이 물품의 카본 옥션을 시작할까요? 시작하면 모두 입찰할 수 있어요.'
+      : win ? '지금 최고 입찰자를 낙찰자로 확정하고 카본 옥션을 마감할까요?'
+        : del ? '이 물품을 목록에서 지울까요? (지난 기록도 함께 사라져요)' : '이 카본 옥션을 취소할까요? 묶여 있던 입찰 공기는 모두 풀립니다.');
     if (!ok) return;
     try {
       await withBusy(el, async () => {
         if (start) {
           await api.startAuction(el.dataset.id);
-          toast('경매를 시작했어요. 이제 입찰할 수 있어요.', 'ok');
+          toast('카본 옥션을 시작했어요. 이제 입찰할 수 있어요.', 'ok');
         } else if (win) {
           const r = await api.closeAuction(el.dataset.id);
           toast(r.result === 'won' ? `${r.winner}님이 ${nf(r.amount)}공기로 낙찰받았어요.` : '입찰이 없어 유찰로 마감했어요.', 'ok');
         } else if (action === 'cancel-auction') {
           await api.cancelAuction(el.dataset.id);
-          toast('경매를 취소했어요.', 'ok');
+          toast('카본 옥션을 취소했어요.', 'ok');
         } else {
           await api.deleteAuction(el.dataset.id);
           toast('목록에서 지웠어요.', 'ok');
@@ -1656,7 +1632,7 @@ document.addEventListener('click', async (e) => {
     return;
   }
   if (action === 'season-activate') {
-    const ok = await askConfirm('이 시즌을 활성 시즌으로 바꿀까요? 지금 시즌은 자동으로 끝나고, 새 실천·경매는 이 시즌에 쌓여요.');
+    const ok = await askConfirm('이 시즌을 활성 시즌으로 바꿀까요? 지금 시즌은 자동으로 끝나고, 새 실천·카본 옥션은 이 시즌에 쌓여요.');
     if (!ok) return;
     try {
       await withBusy(el, () => api.activateSeason(el.dataset.id));
@@ -1677,7 +1653,7 @@ document.addEventListener('click', async (e) => {
     return;
   }
   if (action === 'season-delete') {
-    const ok = await askConfirm(`‘${el.dataset.name}’ 시즌을 지울까요? 실천·경매 기록이 없는 시즌만 지울 수 있어요.`);
+    const ok = await askConfirm(`‘${el.dataset.name}’ 시즌을 지울까요? 실천·카본 옥션 기록이 없는 시즌만 지울 수 있어요.`);
     if (!ok) return;
     try {
       await withBusy(el, () => api.deleteSeason(el.dataset.id));
