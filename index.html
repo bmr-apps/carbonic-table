@@ -3,31 +3,97 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>탄소로운 식탁 · 준비 중 · BMR APPS</title>
-<meta name="description" content="탄소로운 식탁 — 준비 중인 페이지입니다 (BMR APPS)">
+<title>탄소로운 식탁 · BMR APPS</title>
+<meta name="description" content="탄소로운 식탁 — 별무리 사람들이 기후 실천으로 모은 공기를 기록하고, 그 공기로 물건을 나누는 플리마켓.">
 <meta name="theme-color" content="#0abbee">
 <meta name="robots" content="noindex">
 <link rel="icon" href="https://psupfmarnyxontorftio.supabase.co/functions/v1/hub-favicon?slug=carbonic-table">
 </head>
-<body>
-<!-- 준비 중 안내 페이지입니다. 앱을 만들면 이 파일(index.html)을 내 앱 화면으로 바꾸세요.
-     개발에 필요한 정보는 BMR APPS 허브의 '내 서비스 정보 → 개발 정보'와 저장소 README.md 에 있습니다. -->
+<body data-view="home">
+<a class="skip" href="#main">본문으로 바로 가기</a>
+
 <header class="top">
-  <a class="mark" href="https://apps.bmrschool.net/" aria-label="BMR APPS 메인 화면"><span>BMR</span><span>APPS</span></a>
+  <a class="mark" href="./" aria-label="탄소로운 식탁 홈">
+    <svg viewBox="0 0 48 48" role="img" aria-hidden="true" focusable="false">
+      <circle cx="24" cy="26" r="15.5" fill="#fff" stroke="#000" stroke-width="2.5"/>
+      <circle cx="24" cy="26" r="9.5" fill="#ffdc1a" stroke="#000" stroke-width="2"/>
+      <path d="M24 24c0-4.2 2.9-7.5 7.2-7.8-.2 4.5-3 7.6-7.2 7.8z" fill="#02c245" stroke="#000" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M24 24c-.6-3.2-3.2-5.4-6.7-5.1.7 3.7 3.1 5.6 6.7 5.1z" fill="#0abbee" stroke="#000" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M24 24v7" stroke="#000" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="38" cy="9" r="2.2" fill="#0abbee" stroke="#000" stroke-width="1.6"/>
+      <circle cx="43" cy="15" r="1.6" fill="#ffdc1a" stroke="#000" stroke-width="1.4"/>
+    </svg>
+  </a>
+  <div class="brand">
+    <b data-app-name>탄소로운 식탁</b>
+    <small>별무리 기후 실천 통장</small>
+  </div>
+
+  <nav class="nav" id="nav" aria-label="화면 고르기">
+    <button type="button" class="nav-item on" data-nav="home" aria-current="page">현황</button>
+    <button type="button" class="nav-item" data-nav="practices">실천 등록</button>
+    <button type="button" class="nav-item" data-nav="auctions">공기 경매</button>
+    <button type="button" class="nav-item" data-nav="missions" data-operator-only hidden>미션 관리</button>
+  </nav>
+
+  <div class="top-right">
+    <button type="button" class="icon-btn" id="theme" aria-label="어두운 화면으로 바꾸기" title="화면 밝기">
+      <span class="theme-mark" aria-hidden="true">◐</span>
+    </button>
+    <span class="who" id="who" hidden></span>
+    <button type="button" class="btn btn-google" id="login">
+      <span class="g" aria-hidden="true">G</span> 구글 로그인
+    </button>
+    <button type="button" class="btn ghost" id="logout" hidden>로그아웃</button>
+  </div>
 </header>
-<main class="wrap">
-  <section class="hero">
-    <div class="copy">
-      <span class="eyebrow">준비 중</span>
-      <h1 data-app-name>탄소로운 식탁</h1>
-      <p class="desc" data-app-desc hidden></p>
-      <p class="notice"><b>준비 중인 페이지입니다.</b> 곧 이 주소에서 서비스를 열 예정이에요.</p>
-      <a class="btn" href="https://apps.bmrschool.net/">BMR APPS 서비스 둘러보기</a>
-    </div>
-    <div class="art" aria-hidden="true"><i class="a"></i><i class="b"></i><i class="c"></i><i class="d"></i><i class="e"></i><i class="f"></i></div>
-  </section>
+
+<div class="banner" id="banner" role="status" hidden></div>
+
+<main id="main" tabindex="-1">
+  <div class="booting" id="booting">
+    <span class="spin" aria-hidden="true"></span> 실천 통장을 펼치는 중…
+  </div>
 </main>
-<footer class="foot">별무리 개발자들이 함께 만들고 나누는 공간 · <a href="https://apps.bmrschool.net/">BMR APPS</a></footer>
+
+<footer class="foot">
+  <span>별무리가 함께 만드는 기후 실천 기록 · <a href="https://apps.bmrschool.net/">BMR APPS</a></span>
+</footer>
+
+<dialog class="modal" id="profile-dialog" aria-labelledby="profile-title">
+  <form id="profile-form" novalidate>
+    <h2 id="profile-title">내 정보 등록</h2>
+    <p class="modal-desc">실천을 기록하려면 이름과 구분이 필요해요. 한 번만 정하면 됩니다.</p>
+    <fieldset class="kind-pick">
+      <legend>구분</legend>
+      <label><input type="radio" name="kind" value="10학년"> <span>10학년</span></label>
+      <label><input type="radio" name="kind" value="11학년"> <span>11학년</span></label>
+      <label><input type="radio" name="kind" value="12학년"> <span>12학년</span></label>
+      <label><input type="radio" name="kind" value="교사"> <span>교사</span></label>
+    </fieldset>
+    <label class="field">
+      <span>이름</span>
+      <input type="text" name="name" maxlength="20" placeholder="예: 조은길" autocomplete="name" required>
+    </label>
+    <p class="hint">교사로 등록하면 미션·경매를 운영할 수 있어요.</p>
+    <div class="modal-actions">
+      <button type="button" class="btn ghost" data-close-dialog>취소</button>
+      <button type="submit" class="btn primary">저장</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog class="modal modal-sm" id="confirm-dialog" aria-labelledby="confirm-title">
+  <h2 id="confirm-title" class="sr-only">확인</h2>
+  <p class="confirm-text" id="confirm-text"></p>
+  <div class="modal-actions">
+    <button type="button" class="btn ghost" id="confirm-no">취소</button>
+    <button type="button" class="btn danger" id="confirm-yes">확인</button>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
 <script type="module" src="/src/main.js"></script>
 </body>
 </html>
