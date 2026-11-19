@@ -24,7 +24,13 @@ const fmtWhen = (iso) => {
   if (!iso) return '';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+};
+const fmtTime = (iso) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hour12: false });
 };
 const kindBadge = (kind) => (KIND_CLASS[kind] ? `<span class="badge ${KIND_CLASS[kind]}">${esc(kind)}</span>` : '');
 const emptyData = () => ({
@@ -289,7 +295,7 @@ function feedHtml(list) {
       <span class="who-name">${esc(a.name || '회원')}</span>
       <span class="air">+${nf(a.air)}</span>
       <span class="what">${esc(a.mission)}</span>
-      <span class="when">${fmtDay(a.done_on)} 실천 · ${fmtWhen(a.created_at)} 등록</span>
+      <span class="when">${fmtDay(a.done_on)} 실천 · ${fmtTime(a.created_at)} 등록</span>
     </li>`).join('')}</ul>`;
 }
 
