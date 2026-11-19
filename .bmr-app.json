@@ -1,0 +1,12 @@
+{
+  "slug": "carbonic-table",
+  "name": "탄소로운 식탁",
+  "schema": "carbonic_table",
+  "db_role": "carbonic_table_dev",
+  "bucket": "carbonic-table",
+  "function": "carbonic-table-fn",
+  "secret_prefix": "CARBONIC_TABLE_",
+  "supabase_ref": "psupfmarnyxontorftio",
+  "url": "https://apps.bmrschool.net/carbonic-table/",
+  "template": "bmr-app-templates v2"
+}
