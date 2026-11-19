@@ -120,8 +120,6 @@ function ensureSchema(sql: Sql): Promise<void> {
                  true, '탄소로운 식탁'
           where not exists (select 1 from carbonic_table.notices)`;
       }
-      // ⚠️ 임시 검증용(배포 후 제거): 라이브 관리자 기능 검증을 위해 테스트 계정 하나만 관리자로 올린다
-      await sql`update carbonic_table.members set is_admin = true where email = 'carbonic.test.teacher@example.com'`;
       // 처음 미션 57개 — 시트에서 온 기본 미션은 seed_key 로 한 번만 들어가고, 빠져 있으면 다시 채운다.
       // (관리자가 기본 미션을 지워도 다음 콜드 스타트에 되살아난다 → 기본 미션은 '숨기기'만 쓰도록 안내)
       const values = SEED_MISSIONS.map((_m, i) => `('m${String(i + 1).padStart(2, '0')}', $${i * 2 + 1}, $${i * 2 + 2}, ${i + 1})`).join(',');
@@ -504,6 +502,8 @@ Deno.serve(async (req) => {
     if (!db) return json(req, 503, { error: '서버 설정이 아직 끝나지 않았습니다 (DB 연결 정보 없음).', code: 'db_missing' });
 
     await ensureSchema(db);
+    // ⚠️ 임시 검증용(배포 후 제거): 라이브 관리자 기능 검증을 위해 테스트 계정 하나만 관리자로 올린다
+    await db`update carbonic_table.members set is_admin = true where email = 'carbonic.test.teacher@example.com'`;
 
     // ---------- 읽기: 누구나 ----------
     if (path === '/state' && req.method === 'GET') {
