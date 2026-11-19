@@ -308,7 +308,7 @@
   <text x="264" y="66" font-size="11.5" font-weight="700" fill="#455c70">한반도 확대 — 사람</text>
   <g clip-path="url(#cell-264-72)">
     <clipPath id="cell-264-72"><rect x="264" y="72" width="226" height="226"/></clipPath>
-    <g transform="translate(-794.63 -308.63) scale(5.9474)">
+    <g transform="translate(-334.90 -278.30) scale(5.6500)">
     <defs>
       <radialGradient id="earth-ocean-s0" cx="32%" cy="26%" r="88%">
         <stop offset="0%" stop-color="#c2f5fc"/>
@@ -1219,7 +1219,7 @@
   <text x="264" y="316" font-size="11.5" font-weight="700" fill="#455c70">한반도 확대 — 사람</text>
   <g clip-path="url(#cell-264-322)">
     <clipPath id="cell-264-322"><rect x="264" y="322" width="226" height="226"/></clipPath>
-    <g transform="translate(-794.63 -58.63) scale(5.9474)">
+    <g transform="translate(-334.90 -28.30) scale(5.6500)">
     <defs>
       <radialGradient id="earth-ocean-s1" cx="32%" cy="26%" r="88%">
         <stop offset="0%" stop-color="#9adde5"/>
@@ -2150,7 +2150,7 @@
   <text x="264" y="566" font-size="11.5" font-weight="700" fill="#455c70">한반도 확대 — 사람</text>
   <g clip-path="url(#cell-264-572)">
     <clipPath id="cell-264-572"><rect x="264" y="572" width="226" height="226"/></clipPath>
-    <g transform="translate(-794.63 191.37) scale(5.9474)">
+    <g transform="translate(-334.90 221.70) scale(5.6500)">
     <defs>
       <radialGradient id="earth-ocean-s2" cx="32%" cy="26%" r="88%">
         <stop offset="0%" stop-color="#69b8c0"/>
@@ -3105,7 +3105,7 @@
   <text x="264" y="816" font-size="11.5" font-weight="700" fill="#455c70">한반도 확대 — 사람</text>
   <g clip-path="url(#cell-264-822)">
     <clipPath id="cell-264-822"><rect x="264" y="822" width="226" height="226"/></clipPath>
-    <g transform="translate(-794.63 441.37) scale(5.9474)">
+    <g transform="translate(-334.90 471.70) scale(5.6500)">
     <defs>
       <radialGradient id="earth-ocean-s3" cx="32%" cy="26%" r="88%">
         <stop offset="0%" stop-color="#dab28f"/>
