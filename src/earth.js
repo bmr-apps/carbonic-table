@@ -302,19 +302,19 @@ function iceArt(c, t, state) {
     }
     return out.join('');
   };
-  const gradTop = north - 16, gradBot = north + 2;
-  const sTop = south - 2, sBot = south + 16;
+  const gradTop = north - 10, gradBot = north + 4;
+  const sTop = south - 4, sBot = south + 10;
   return `<defs>
       <linearGradient id="earth-ice-n" gradientUnits="userSpaceOnUse" x1="0" y1="${gradTop.toFixed(1)}" x2="0" y2="${gradBot.toFixed(1)}">
         <stop offset="0%" stop-color="${c.snow}" stop-opacity="1"/>
-        <stop offset="72%" stop-color="${c.snow}" stop-opacity="0.97"/>
-        <stop offset="88%" stop-color="${c.snow}" stop-opacity="0.8"/>
+        <stop offset="70%" stop-color="${c.snow}" stop-opacity="1"/>
+        <stop offset="85%" stop-color="${c.snow}" stop-opacity="0.88"/>
         <stop offset="100%" stop-color="${c.snow}" stop-opacity="0"/>
       </linearGradient>
       <linearGradient id="earth-ice-s" gradientUnits="userSpaceOnUse" x1="0" y1="${sBot.toFixed(1)}" x2="0" y2="${sTop.toFixed(1)}">
         <stop offset="0%" stop-color="${c.snow}" stop-opacity="1"/>
-        <stop offset="72%" stop-color="${c.snow}" stop-opacity="0.97"/>
-        <stop offset="88%" stop-color="${c.snow}" stop-opacity="0.8"/>
+        <stop offset="70%" stop-color="${c.snow}" stop-opacity="1"/>
+        <stop offset="85%" stop-color="${c.snow}" stop-opacity="0.88"/>
         <stop offset="100%" stop-color="${c.snow}" stop-opacity="0"/>
       </linearGradient>
       <filter id="earth-ice-soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2"/></filter>
