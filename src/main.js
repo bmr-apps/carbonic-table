@@ -134,6 +134,9 @@ const state = {
   lotForm: null,           // null | 'new' | 카본 옥션 id
   editNotice: null,        // 공지 수정 중인 id
   editSeason: null,
+  // 전체 실천 보기 — /state 가 준 최근 40건 뒤로 서버에서 페이지로 이어 받는다
+  feed: { seasonId: null, items: [], total: 0, loading: false, error: null },
+  feedPage: 30,
 };
 
 const d = () => state.data || emptyData();
@@ -229,10 +232,11 @@ function render() {
   }
   main.innerHTML = state.view === 'practices' ? practicesView()
     : state.view === 'mine' ? mineView()
-      : state.view === 'auctions' ? auctionsView()
-        : state.view === 'ranking' ? rankingView()
-          : state.view === 'admin' ? adminView()
-            : homeView();
+      : state.view === 'feed' ? feedView()
+        : state.view === 'auctions' ? auctionsView()
+          : state.view === 'ranking' ? rankingView()
+            : state.view === 'admin' ? adminView()
+              : homeView();
   syncEarthSpin(main);   // 다시 그려도 대륙·구름이 돌던 자리에서 이어지게
 }
 
@@ -399,9 +403,15 @@ function homeView() {
     <section class="cols">
       <div class="card">${ledgerCard(me)}</div>
       <div class="card">
-        <div class="card-head"><h2>최근 실천</h2><span class="badge soft">${nf(data.activities.length)}건</span>
-          <div class="right"><button type="button" class="btn sm ghost" data-action="refresh" aria-label="새로고침">↻</button></div></div>
+        <div class="card-head"><h2>최근 실천</h2><span class="badge soft">최근 ${nf(data.activities.length)}건</span>
+          <div class="right">
+            ${activityCount > data.activities.length ? `<button type="button" class="btn sm ghost" data-action="go" data-view="feed">전체 ${nf(activityCount)}건 보기 →</button>` : ''}
+            <button type="button" class="btn sm ghost" data-action="refresh" aria-label="새로고침">↻</button>
+          </div></div>
         ${feedHtml(data.activities)}
+        ${activityCount > data.activities.length
+          ? `<p class="hint mt8">최근 ${nf(data.activities.length)}건만 보여 드려요. <button type="button" class="btn tiny ghost" data-action="go" data-view="feed">전체 실천 ${nf(activityCount)}건 모두 보기</button></p>`
+          : ''}
       </div>
     </section>
 
@@ -967,6 +977,67 @@ function mineView() {
   </div>`;
 }
 
+// ---------- 실천 전체 보기 ----------
+// 첫 벌(/state)은 최근 40건만 담는다. 이 화면은 서버에서 30건씩 이어 받아 '더 보기'로 붙여 나간다.
+function feedSeasonId() { return d().season?.id ?? null; }
+
+async function loadFeed({ reset = false } = {}) {
+  const season = feedSeasonId();
+  const feed = state.feed;
+  if (reset || feed.seasonId !== season) {
+    feed.items = [];
+    feed.total = 0;
+    feed.seasonId = season;
+  }
+  feed.loading = true;
+  feed.error = null;
+  if (state.view === 'feed') render();
+  try {
+    const page = await api.feed({ season, offset: feed.items.length, limit: state.feedPage });
+    const seen = new Set(feed.items.map((a) => a.id));
+    feed.items = feed.items.concat((page.activities || []).filter((a) => !seen.has(a.id)));
+    feed.total = Number(page.total ?? feed.items.length);
+  } catch (e) {
+    feed.error = e;
+  } finally {
+    feed.loading = false;
+    if (state.view === 'feed') render();
+  }
+}
+
+function ensureFeed() {
+  const season = feedSeasonId();
+  if (state.feed.seasonId !== season || (!state.feed.items.length && !state.feed.loading)) {
+    loadFeed({ reset: true });
+  }
+}
+
+function feedView() {
+  const season = seasonOf();
+  const feed = state.feed;
+  const total = feed.total || d().summary.activity_count || 0;
+  const shown = feed.items.length;
+  return `<div class="wrap">
+    <div class="section-head">
+      <h2>${icon('leaf', 'ico lg')} 전체 실천</h2>
+      <span class="eyebrow">${esc(season?.name || '')} · ${nf(shown)} / ${nf(total)}건</span>
+    </div>
+    <section class="section" aria-labelledby="feed-all-title">
+      <div class="card">
+        <div class="card-head"><h2 id="feed-all-title">모두의 실천 기록</h2><span class="badge soft">전체 ${nf(total)}건</span>
+          <div class="right"><button type="button" class="btn sm ghost" data-action="refresh" aria-label="새로고침">↻</button></div></div>
+        ${feed.error
+          ? `<div class="empty"><b>기록을 불러오지 못했어요.</b>${esc(explainError(feed.error))}</div>`
+          : (feed.loading && !shown ? '<p class="hint"><span class="spin" aria-hidden="true"></span> 실천 기록을 모으는 중…</p>' : feedHtml(feed.items))}
+        ${feed.loading && shown ? `<p class="hint mt8"><span class="spin" aria-hidden="true"></span> 불러오는 중…</p>` : ''}
+        ${!feed.loading && shown < total
+          ? `<div class="feed-more"><button type="button" class="btn" data-action="feed-more">더 보기 (${nf(total - shown)}건 남음)</button></div>`
+          : (!feed.loading && total > 0 ? '<p class="hint mt8">마지막 실천까지 다 봤어요.</p>' : '')}
+      </div>
+    </section>
+  </div>`;
+}
+
 function rankingView() {
   const data = d();
   const season = seasonOf();
@@ -1412,7 +1483,7 @@ function adminMissions() {
         <label class="field"><span>공기</span><input type="number" name="air" min="1" max="100" step="1" value="1" required></label>
         <div class="form-actions end"><button type="submit" class="btn primary">추가</button></div>
       </div>
-      <p class="hint">새 미션은 바로 실천 등록 목록에 나타나요. 기본 미션은 지우지 말고 숨겨 주세요.</p>
+      <p class="hint">새 미션은 맨 뒤에 붙어요. 아래 ▲▼ 로 보여질 순서를 바꿀 수 있어요. 기본 미션은 지우지 말고 숨겨 주세요.</p>
     </form>
     <div class="table-tools">
       <input type="search" id="mission-admin-search" placeholder="미션 찾기" value="${esc(state.missionAdminQuery)}" aria-label="미션 찾기">
@@ -1423,18 +1494,24 @@ function adminMissions() {
 
 function missionAdminHtml() {
   const q = state.missionAdminQuery.trim().toLowerCase();
-  const list = d().missions.filter((m) => !q || m.name.toLowerCase().includes(q));
+  const all = d().missions;
+  const list = all.filter((m) => !q || m.name.toLowerCase().includes(q));
   if (!list.length) return `<div class="empty"><b>찾는 미션이 없어요.</b></div>`;
-  return list.map((m) => `
+  return `${q ? '' : '<p class="hint mb8">▲▼ 로 순서를 바꾸면 ‘실천’ 화면의 미션 순서가 그대로 바뀌어요. (숨긴 미션은 목록에만 남아요)</p>'}${list.map((m) => {
+    const pos = all.indexOf(m) + 1;
+    return `
     <div class="row ${m.active ? '' : 'off'}" data-mission="${esc(m.id)}">
-      <span class="nm">${esc(m.name)} <span class="uses">사용 ${nf(m.uses)}회</span></span>
+      <span class="nm"><span class="ord" aria-hidden="true">${nf(pos)}</span>${esc(m.name)} <span class="uses">사용 ${nf(m.uses)}회</span></span>
       <input type="number" min="1" max="100" step="1" value="${m.air}" aria-label="${esc(m.name)} 공기" id="mission-air-${esc(m.id)}">
       <div class="row-actions">
+        ${q ? '' : `<button type="button" class="btn tiny ghost move" data-action="move-mission" data-id="${esc(m.id)}" data-dir="up" aria-label="${esc(m.name)} 순서를 한 칸 위로" title="한 칸 위로" ${pos === 1 ? 'disabled' : ''}>▲</button>
+        <button type="button" class="btn tiny ghost move" data-action="move-mission" data-id="${esc(m.id)}" data-dir="down" aria-label="${esc(m.name)} 순서를 한 칸 아래로" title="한 칸 아래로" ${pos === all.length ? 'disabled' : ''}>▼</button>`}
         <button type="button" class="btn tiny ghost" data-action="save-mission-air" data-id="${esc(m.id)}">공기 저장</button>
         <button type="button" class="btn tiny ${m.active ? '' : 'primary'}" data-action="toggle-mission" data-id="${esc(m.id)}" data-active="${m.active ? '1' : '0'}">${m.active ? '숨기기' : '다시 쓰기'}</button>
         ${m.uses === 0 && !m.seeded ? `<button type="button" class="btn tiny ghost" data-action="delete-mission" data-id="${esc(m.id)}">지우기</button>` : ''}
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('')}`;
 }
 
 // ---------- 동작 ----------
@@ -1443,6 +1520,7 @@ function switchView(view) {
   if (view === 'practices' && !state.day) state.day = todayStr();
   render();
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (state.view === 'feed') ensureFeed();
 }
 
 async function withBusy(btn, fn) {
@@ -1491,7 +1569,15 @@ document.addEventListener('click', async (e) => {
     }
     return;
   }
-  if (action === 'retry' || action === 'refresh') { load({ quiet: Boolean(state.data) }); return; }
+  if (action === 'retry' || action === 'refresh') {
+    load({ quiet: Boolean(state.data) });
+    if (state.view === 'feed') loadFeed({ reset: true });
+    return;
+  }
+  if (action === 'feed-more') {
+    await loadFeed();
+    return;
+  }
   if (action === 'open-profile') { openProfileDialog(); return; }
   if (action === 'delete-profile') {
     const ok = await askConfirm('내 회원 정보를 지울까요? 이름·구분이 사라지고, 실천 기록이 있으면 지울 수 없어요. 다시 등록하면 새로 시작해요.');
@@ -1580,6 +1666,7 @@ document.addEventListener('click', async (e) => {
     const id = el.dataset.id;
     state.openComments[id] = !state.openComments[id];
     await load({ quiet: true });
+    if (state.view === 'feed') await loadFeed({ reset: true });
     const opened = $(`.feed-item [data-id="${CSS.escape(String(id))}"][data-action="toggle-comments"]`);
     if (opened) opened.scrollIntoView({ block: 'nearest' });
     return;
@@ -1591,6 +1678,7 @@ document.addEventListener('click', async (e) => {
       await api.deleteComment(el.dataset.id);
       toast('댓글을 지웠어요.', 'ok');
       await load({ quiet: true });
+      if (state.view === 'feed') await loadFeed({ reset: true });
     } catch (err) { toast(err.message || '지우지 못했어요.', 'err'); }
     return;
   }
@@ -1601,6 +1689,7 @@ document.addEventListener('click', async (e) => {
       await api.deleteActivity(el.dataset.id);
       toast('기록을 지웠어요.', 'ok');
       await load({ quiet: true });
+      if (state.view === 'feed') await loadFeed({ reset: true });
     } catch (err) { toast(err.message || '지우지 못했어요.', 'err'); }
     return;
   }
@@ -1770,6 +1859,14 @@ document.addEventListener('click', async (e) => {
     } catch (err) { toast(err.message || '지우지 못했어요.', 'err'); }
     return;
   }
+  if (action === 'move-mission') {
+    const dir = el.dataset.dir === 'down' ? 'down' : 'up';
+    try {
+      await withBusy(el, () => api.reorderMission(el.dataset.id, dir));
+      await load({ quiet: true });
+    } catch (err) { toast(err.message || '순서를 바꾸지 못했어요.', 'err'); }
+    return;
+  }
   if (action === 'save-mission-air') {
     const input = $(`#mission-air-${CSS.escape(el.dataset.id)}`);
     const air = Number(input?.value);
@@ -1868,6 +1965,7 @@ document.addEventListener('submit', async (e) => {
       state.openComments[form.dataset.id] = true;
       form.querySelector('input[name="body"]').value = '';
       await load({ quiet: true });
+      if (state.view === 'feed') await loadFeed({ reset: true });
     } catch (err) { toast(err.message || '댓글을 남기지 못했어요.', 'err'); }
     return;
   }

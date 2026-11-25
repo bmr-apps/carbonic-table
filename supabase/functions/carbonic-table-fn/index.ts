@@ -5,6 +5,7 @@
 //   GET   /health                       DB 연결 확인 (허브 표준 healthJson)
 //   GET   /hello                        부른 사람과 역할
 //   GET   /state[?season=<id>]          화면 한 벌 — 시즌·지구(탄소·공기)·총합·학년별·회원별·랭킹·피드(반응·댓글)·내 실천·공지·카본 옥션 (로그인 없이도 열람)
+//   GET   /activities?season=&offset=&limit=   실천 전체 목록 페이지 — /state 는 최근 40건만 담고, '전체 보기'는 이 주소로 이어서 받는다 (로그인 없이도 열람)
 //   GET   /images/:id                   사진 내려 주기 (공개)
 //   POST  /images         {data}        사진 올리기 (로그인·회원, data:image/webp;base64,… 1.2MB까지)
 //   POST  /me            {name, kind}   내 회원 정보 등록·수정 (로그인 필요, 첫 회원은 관리자)
@@ -21,7 +22,8 @@
 //   POST  /seasons/:id/earth {carbon_per_hour?, carbon_capacity?, reset?}   지구(탄소) 설정·기준 시각 리셋 (관리자)
 //   POST  /seasons/:id/activate         활성 시즌으로 전환 (관리자)
 //   POST  /seasons/:id/end              시즌 종료 (관리자)
-//   POST  /missions     {name, air}     미션 추가 (관리자)
+//   POST  /missions     {name, air}     미션 추가 (관리자, 맨 뒤에 붙는다)
+//   POST  /missions/reorder {id, direction:'up'|'down'}   미션 순서 한 칸 올리기·내리기 (관리자, sort 를 1…n 으로 다시 매김)
 //   PATCH /missions/:id {name?, air?, active?}   미션 고치기·숨기기 (관리자)
 //   DEL   /missions/:id                 실천 기록이 없는 미션 지우기 (관리자)
 //   POST  /auctions     {title, description?, start_price, min_step, image_url?}  회원 물품 등록 → waiting(대기)
@@ -602,6 +604,65 @@ async function buildState(sql: Sql, req: Request) {
   };
 }
 
+// ---------- 실천 전체 목록 (더 보기) ----------
+// 모양은 /state 의 activities 와 같다 (반응·댓글 포함) — 화면이 같은 조각으로 그린다.
+async function buildFeedPage(sql: Sql, seasonId: number, offset: number, limit: number, userId: string | null) {
+  const [tot] = await sql`
+    select count(*)::int as n from carbonic_table.activities where season_id = ${seasonId}` as unknown as Row[];
+  const rows = await sql`
+    select a.id, a.user_id, a.mission_id, a.mission_name, a.air, to_char(a.done_on, 'YYYY-MM-DD') as done_on, a.created_at,
+           coalesce(m.name, '') as name, coalesce(m.kind, '') as kind, a.image_url
+    from carbonic_table.activities a
+    left join carbonic_table.members m on m.user_id = a.user_id
+    where a.season_id = ${seasonId}
+    order by a.created_at desc, a.id desc
+    limit ${limit} offset ${offset}` as unknown as Row[];
+  const ids = rows.map((r) => Number(r.id));
+  const reactionRows = ids.length ? await sql`
+    select activity_id, emoji, count(*)::int as n,
+           ${userId ? sql`bool_or(user_id = ${userId}::uuid)` : sql`false`} as mine
+    from carbonic_table.activity_reactions
+    where activity_id = any(${ids}::bigint[])
+    group by activity_id, emoji` as unknown as Row[] : [];
+  const countRows = ids.length ? await sql`
+    select activity_id, count(*)::int as n from carbonic_table.activity_comments
+    where activity_id = any(${ids}::bigint[]) group by activity_id` as unknown as Row[] : [];
+  const commentRows = ids.length ? await sql`
+    select id, activity_id, user_id, name, kind, body, created_at from (
+      select c.id, c.activity_id, c.user_id, c.name, c.kind, c.body, c.created_at,
+             row_number() over (partition by c.activity_id order by c.created_at desc, c.id desc) as rn
+      from carbonic_table.activity_comments c
+      where c.activity_id = any(${ids}::bigint[])
+    ) t where rn <= 20 order by created_at asc, id asc` as unknown as Row[] : [];
+  const countOf = new Map(countRows.map((r) => [String(r.activity_id), Number(r.n ?? 0)]));
+
+  return {
+    total: Number(tot?.n ?? 0),
+    offset,
+    limit,
+    activities: rows.map((r) => {
+      const id = String(r.id);
+      const seen: Record<string, { n: number; mine: boolean }> = {};
+      for (const x of reactionRows) {
+        if (String(x.activity_id) === id) seen[String(x.emoji)] = { n: Number(x.n ?? 0), mine: x.mine === true };
+      }
+      return {
+        id, user_id: String(r.user_id), name: String(r.name ?? ''), kind: String(r.kind ?? ''),
+        mission_id: r.mission_id == null ? null : String(r.mission_id),
+        mission: String(r.mission_name ?? ''), air: Number(r.air ?? 0),
+        done_on: String(r.done_on ?? ''), created_at: r.created_at,
+        image_url: String(r.image_url ?? ''),
+        reactions: REACTIONS.map((emoji) => ({ emoji, n: seen[emoji]?.n ?? 0, mine: seen[emoji]?.mine ?? false })),
+        comment_count: countOf.get(id) ?? 0,
+        comments: commentRows.filter((c) => String(c.activity_id) === id).map((c) => ({
+          id: String(c.id), user_id: String(c.user_id), name: String(c.name ?? ''),
+          kind: String(c.kind ?? ''), body: String(c.body ?? ''), created_at: c.created_at,
+        })),
+      };
+    }),
+  };
+}
+
 // ---------- 요청 처리 ----------
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(req) });
@@ -631,6 +692,18 @@ Deno.serve(async (req) => {
     // ---------- 읽기: 누구나 ----------
     if (path === '/state' && req.method === 'GET') {
       return json(req, 200, await buildState(db, req));
+    }
+
+    // 실천 전체 보기 — 페이지 단위. 화면 첫 벌(/state)은 최근 40건만 담으므로, '더 보기'가 이 주소로 이어서 받는다.
+    if (path === '/activities' && req.method === 'GET') {
+      const url = new URL(req.url);
+      const seasons = await listSeasons(db);
+      const wanted = Number(url.searchParams.get('season') ?? '');
+      const season = (Number.isFinite(wanted) && wanted > 0 ? seasons.find((s) => s.id === wanted) : null) ?? currentOf(seasons);
+      if (!season) return json(req, 200, { total: 0, offset: 0, limit: 0, activities: [] });
+      const offset = Math.min(200000, Math.max(0, Math.floor(Number(url.searchParams.get('offset') ?? 0)) || 0));
+      const limit = Math.min(100, Math.max(1, Math.floor(Number(url.searchParams.get('limit') ?? 20)) || 20));
+      return json(req, 200, await buildFeedPage(db, season.id, offset, limit, user?.id ?? null));
     }
 
     // 사진 내려 주기 (공개 — <img> 가 바로 부를 수 있게)
@@ -1078,6 +1151,31 @@ Deno.serve(async (req) => {
         insert into carbonic_table.missions (name, air, sort) values (${name}, ${air}, ${Number(max?.s ?? 0) + 1})
         returning id, name, air, active` as unknown as Row[];
       return json(req, 201, { ok: true, mission: row });
+    }
+
+    // 미션 순서 바꾸기 — 한 칸 위/아래. 바꾼 뒤 sort 를 1…n 으로 다시 매겨 같은 값이 겹치지 않게 한다.
+    if (parts[0] === 'missions' && parts[1] === 'reorder' && req.method === 'POST') {
+      requireAdmin();
+      const body = await readJson(req);
+      const id = idOf(body.id);
+      const direction = String(body.direction ?? '');
+      if (direction !== 'up' && direction !== 'down') return json(req, 400, { error: 'direction 은 up 또는 down 이어야 합니다.' });
+      const out = await db.begin(async (tx) => {
+        const rows = await tx`
+          select id from carbonic_table.missions order by sort asc, id asc for update` as unknown as Row[];
+        const ids = rows.map((r) => String(r.id));
+        const from = ids.indexOf(id);
+        if (from < 0) throw new HttpError(404, '그 미션을 찾지 못했어요.');
+        const to = from + (direction === 'up' ? -1 : 1);
+        if (to < 0 || to >= ids.length) return { moved: false, position: from + 1, total: ids.length };
+        [ids[from], ids[to]] = [ids[to], ids[from]];
+        await tx`
+          update carbonic_table.missions m set sort = v.pos
+          from (select id, ordinality as pos from unnest(${ids.map(Number)}::bigint[]) with ordinality as t(id, ordinality)) v
+          where m.id = v.id and m.sort <> v.pos`;
+        return { moved: true, position: to + 1, total: ids.length };
+      });
+      return json(req, 200, { ok: true, ...out });
     }
 
     if (parts[0] === 'missions' && parts[1] && req.method === 'PATCH') {

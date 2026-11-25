@@ -48,6 +48,12 @@ const seg = (v) => encodeURIComponent(String(v));
 
 export const api = {
   state: (seasonId) => request(`/state${seasonId ? `?season=${seg(seasonId)}` : ''}`),
+  // 실천 전체 목록 — 페이지. /state 는 최근 40건만 주므로 '더 보기'는 이 주소로 이어서 받는다.
+  feed: ({ season, offset = 0, limit = 20 } = {}) => {
+    const q = new URLSearchParams({ offset: String(offset), limit: String(limit) });
+    if (season) q.set('season', String(season));
+    return request(`/activities?${q}`);
+  },
   saveProfile: (name, kind) => request('/me', { method: 'POST', body: { name, kind } }),
   deleteProfile: () => request('/me', { method: 'DELETE' }),
   addActivity: (mission_id, done_on) => request('/activities', { method: 'POST', body: { mission_id, done_on } }),
@@ -69,6 +75,8 @@ export const api = {
   endSeason: (id) => request(`/seasons/${seg(id)}/end`, { method: 'POST', body: {} }),
   deleteSeason: (id) => request(`/seasons/${seg(id)}`, { method: 'DELETE' }),
   addMission: (name, air) => request('/missions', { method: 'POST', body: { name, air } }),
+  // 미션 순서 한 칸 옮기기 — direction: 'up' | 'down'
+  reorderMission: (id, direction) => request('/missions/reorder', { method: 'POST', body: { id, direction } }),
   patchMission: (id, patch) => request(`/missions/${seg(id)}`, { method: 'PATCH', body: patch }),
   deleteMission: (id) => request(`/missions/${seg(id)}`, { method: 'DELETE' }),
   addAuction: (payload) => request('/auctions', { method: 'POST', body: payload }),
