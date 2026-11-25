@@ -202,6 +202,7 @@ async function load({ quiet = false } = {}) {
   } finally {
     state.loading = false;
     render();
+    if (state.view === 'feed') ensureFeed();
   }
 }
 
