@@ -589,11 +589,11 @@ function memberRowsHtml() {
 }
 
 // ---------- 실천 피드 (반응·댓글) ----------
-function feedHtml(list) {
+function feedHtml(list, extraClass = '') {
   if (!list.length) {
     return `<div class="empty"><b>아직 첫 실천이 없어요.</b>첫 공기를 모아 볼까요?</div>`;
   }
-  return `<ul class="feed">${list.map((a) => feedItem(a)).join('')}</ul>`;
+  return `<ul class="feed ${extraClass}">${list.map((a) => feedItem(a)).join('')}</ul>`;
 }
 
 function feedItem(a) {
@@ -1028,7 +1028,7 @@ function feedView() {
           <div class="right"><button type="button" class="btn sm ghost" data-action="refresh" aria-label="새로고침">↻</button></div></div>
         ${feed.error
           ? `<div class="empty"><b>기록을 불러오지 못했어요.</b>${esc(explainError(feed.error))}</div>`
-          : (feed.loading && !shown ? '<p class="hint"><span class="spin" aria-hidden="true"></span> 실천 기록을 모으는 중…</p>' : feedHtml(feed.items))}
+          : (feed.loading && !shown ? '<p class="hint"><span class="spin" aria-hidden="true"></span> 실천 기록을 모으는 중…</p>' : feedHtml(feed.items, 'feed-all'))}
         ${feed.loading && shown ? `<p class="hint mt8"><span class="spin" aria-hidden="true"></span> 불러오는 중…</p>` : ''}
         ${!feed.loading && shown < total
           ? `<div class="feed-more"><button type="button" class="btn" data-action="feed-more">더 보기 (${nf(total - shown)}건 남음)</button></div>`

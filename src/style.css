@@ -373,8 +373,8 @@ img, svg { max-width: 100%; }
 
 /* 피드 (반응·댓글) */
 .feed { list-style: none; margin: 0; padding: 0; border: var(--bw) solid var(--line); background: var(--surface); max-height: 620px; overflow: auto; }
-.feed-item { padding: 10px 12px; border-bottom: 1.5px solid var(--line-soft); display: grid; gap: 7px; }
-.feed-item:last-child { border-bottom: 0; }
+.feed.feed-all { max-height: none; overflow: visible; }
+.feed-item { padding: 10px 12px; border-bottom: 1.5px solid var(--line-soft); display: grid; gap: 7px; }.feed-item:last-child { border-bottom: 0; }
 .feed-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
 .feed-head .who-name { font-weight: 850; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45%; }
 .feed-head .what { font-size: 13.5px; color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 120px; }
